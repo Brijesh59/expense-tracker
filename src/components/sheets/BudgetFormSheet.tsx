@@ -100,8 +100,8 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
         ref={sheetRef}
         snapPoints={['60%']}
         enablePanDownToClose
-        backgroundStyle={{ backgroundColor: Colors.surface }}
-        handleIndicatorStyle={{ backgroundColor: Colors.border, width: 40 }}
+        backgroundStyle={{ backgroundColor: Colors.surface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
+        handleIndicatorStyle={{ backgroundColor: Colors.textMuted, width: 36 }}
         backdropComponent={(props) => (
           <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.6} />
         )}
@@ -133,10 +133,10 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
                   gap: 6,
                   paddingHorizontal: 14,
                   paddingVertical: 10,
-                  borderRadius: Radius.full,
+                  borderRadius: Radius.none,
                   borderWidth: 1.5,
                   borderColor: selectedCategoryId === cat.id ? cat.color : Colors.border,
-                  backgroundColor: selectedCategoryId === cat.id ? `${cat.color}20` : Colors.surface,
+                  backgroundColor: selectedCategoryId === cat.id ? `${cat.color}18` : Colors.surface,
                   marginRight: 8,
                 }}
               >
@@ -160,7 +160,9 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
               flexDirection: 'row',
               alignItems: 'center',
               backgroundColor: Colors.surface2,
-              borderRadius: Radius.md,
+              borderRadius: Radius.sm,
+              borderWidth: 1,
+              borderColor: Colors.border,
               paddingHorizontal: Spacing.md,
               paddingVertical: 12,
               marginBottom: Spacing.xl,
@@ -171,7 +173,7 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
               value={amount}
               onChangeText={setAmount}
               placeholder="0"
-              placeholderTextColor={Colors.border}
+              placeholderTextColor={Colors.textMuted}
               keyboardType="decimal-pad"
               autoFocus
               style={{

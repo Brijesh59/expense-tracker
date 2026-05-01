@@ -47,7 +47,7 @@ export function BudgetRing({
     interpolateColor(
       progress.value,
       [0, 0.7, 0.85, 1],
-      [Colors.green, Colors.green, Colors.yellow, Colors.red]
+      [Colors.green, Colors.green, Colors.primary, Colors.red]
     )
   );
 

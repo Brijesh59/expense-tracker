@@ -23,9 +23,9 @@ import { emptyStates } from '@/constants/copy';
 import type { InsightCard } from '@/hooks/useInsights';
 
 const INSIGHT_BG: Record<string, string> = {
-  good: '#4ECDC420',
-  neutral: '#7C6AF720',
-  warning: '#F7DC6F20',
+  good: `${Colors.green}18`,
+  neutral: `${Colors.primary}18`,
+  warning: `${Colors.yellow}18`,
 };
 
 const INSIGHT_DOT: Record<string, string> = {

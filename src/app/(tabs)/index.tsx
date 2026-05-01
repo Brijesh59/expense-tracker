@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { ScrollView, View, Text, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Colors, Spacing, Fonts } from '@/constants/theme';
 import { H2, H3, Body, Caption, BodyMedium } from '@/components/ui/Typography';
 import { BudgetRing } from '@/components/ui/BudgetRing';
@@ -82,7 +83,7 @@ export default function OverviewScreen() {
                   item={item}
                   category={getCategoryById(item.categoryId)}
                   index={index}
-                  onPress={() => {}}
+                  onPress={() => router.push(`/budget/${item.budget.id}`)}
                 />
               ))}
             </View>

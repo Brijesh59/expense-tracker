@@ -57,10 +57,10 @@ export function getBudgetUsageRatio(spent: number, budget: number): number {
 }
 
 export function getBudgetColor(ratio: number): string {
-  if (ratio >= 1) return '#FF6B6B';
-  if (ratio >= 0.85) return '#F7DC6F';
-  if (ratio >= 0.7) return '#F7DC6F';
-  return '#4ECDC4';
+  if (ratio >= 1) return '#FF4444';
+  if (ratio >= 0.85) return '#F8E71C';
+  if (ratio >= 0.7) return '#F8E71C';
+  return '#00C853';
 }
 
 export function getDailyBudgetPace(totalBudget: number, daysInMonth: number): number {

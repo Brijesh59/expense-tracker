@@ -1,16 +1,17 @@
 export const Colors = {
-  primary: '#7C6AF7',
-  accent: '#F59E6B',
-  background: '#0F0F14',
-  surface: '#1A1A24',
-  surface2: '#242433',
-  border: '#2E2E42',
-  textPrimary: '#F0F0F8',
-  textSecondary: '#8888A8',
-  textMuted: '#55556A',
-  green: '#4ECDC4',
-  yellow: '#F7DC6F',
-  red: '#FF6B6B',
+  primary: '#F8E71C',                    // CRED signature yellow
+  primaryShadow: '#C4B800',             // neoPOP hard shadow for yellow buttons
+  accent: '#F8E71C',
+  background: '#0D0D0D',                // Near-pure black
+  surface: '#1A1A1A',                   // Card surfaces
+  surface2: '#242424',                  // Inputs, elevated surfaces
+  border: 'rgba(255,255,255,0.1)',      // Subtle white rim
+  textPrimary: '#FFFFFF',
+  textSecondary: '#999999',
+  textMuted: '#555555',
+  green: '#00C853',                     // CRED green
+  yellow: '#F8E71C',
+  red: '#FF4444',
 } as const;
 
 export const Fonts = {
@@ -30,11 +31,12 @@ export const Spacing = {
 } as const;
 
 export const Radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  full: 9999,
+  none: 0,    // neoPOP buttons — square corners
+  sm: 4,      // inputs
+  md: 8,      // cards
+  lg: 12,     // sheets, modals
+  xl: 20,
+  full: 9999, // chips, pills
 } as const;
 
 export type ColorKey = keyof typeof Colors;

@@ -138,7 +138,9 @@ export default function TransactionsScreen() {
           flexDirection: 'row',
           alignItems: 'center',
           backgroundColor: Colors.surface2,
-          borderRadius: Radius.md,
+          borderRadius: Radius.sm,
+          borderWidth: 1,
+          borderColor: Colors.border,
           paddingHorizontal: Spacing.md,
           paddingVertical: 10,
         }}
@@ -169,10 +171,10 @@ export default function TransactionsScreen() {
           style={{
             paddingHorizontal: 14,
             paddingVertical: 6,
-            borderRadius: Radius.full,
+            borderRadius: Radius.none,
             borderWidth: 1.5,
             borderColor: !selectedCategoryId ? Colors.primary : Colors.border,
-            backgroundColor: !selectedCategoryId ? `${Colors.primary}20` : 'transparent',
+            backgroundColor: !selectedCategoryId ? `${Colors.primary}18` : 'transparent',
           }}
         >
           <Text
@@ -192,10 +194,10 @@ export default function TransactionsScreen() {
             style={{
               paddingHorizontal: 14,
               paddingVertical: 6,
-              borderRadius: Radius.full,
+              borderRadius: Radius.none,
               borderWidth: 1.5,
               borderColor: selectedCategoryId === cat.id ? cat.color : Colors.border,
-              backgroundColor: selectedCategoryId === cat.id ? `${cat.color}20` : 'transparent',
+              backgroundColor: selectedCategoryId === cat.id ? `${cat.color}18` : 'transparent',
               flexDirection: 'row',
               alignItems: 'center',
               gap: 4,

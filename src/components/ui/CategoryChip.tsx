@@ -36,10 +36,10 @@ export function CategoryChip({ icon, name, color, selected = false, onPress, siz
           gap: 6,
           paddingHorizontal: size === 'sm' ? 10 : 14,
           paddingVertical: size === 'sm' ? 6 : 10,
-          borderRadius: Radius.full,
+          borderRadius: Radius.none,
           borderWidth: 1.5,
           borderColor: selected ? color : Colors.border,
-          backgroundColor: selected ? `${color}20` : Colors.surface,
+          backgroundColor: selected ? `${color}18` : Colors.surface,
           marginRight: 8,
         },
       ]}

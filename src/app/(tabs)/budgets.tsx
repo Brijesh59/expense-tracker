@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Colors, Spacing } from '@/constants/theme';
 import { H2, Caption } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
@@ -51,7 +52,7 @@ export default function BudgetsScreen() {
                 item={item}
                 category={categories.find(c => c.id === item.categoryId)}
                 index={index}
-                onPress={() => budgetSheetRef.current?.present(item.budget)}
+                onPress={() => router.push(`/budget/${item.budget.id}`)}
               />
             ))}
             <Button
