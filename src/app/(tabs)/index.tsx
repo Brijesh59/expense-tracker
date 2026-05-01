@@ -1,101 +1,101 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
-import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
-import * as Notifications from 'expo-notifications';
-import LottieView from 'lottie-react-native';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { ScrollView, View, Text, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors, Spacing, Fonts } from '@/constants/theme';
+import { H2, H3, Body, Caption, BodyMedium } from '@/components/ui/Typography';
+import { BudgetRing } from '@/components/ui/BudgetRing';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { MonthSelector } from '@/components/ui/MonthSelector';
+import { CategoryBudgetCard } from '@/components/overview/CategoryBudgetCard';
+import { useMonthStore } from '@/store/monthStore';
+import { useBudgets } from '@/hooks/useBudgets';
+import { useCategories } from '@/hooks/useCategories';
+import { formatAmount, formatAmountFull } from '@/utils/currency';
+import { getGreeting } from '@/utils/dates';
+import { emptyStates } from '@/constants/copy';
+import { useAddExpense } from './_layout';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+export default function OverviewScreen() {
+  const { month, year } = useMonthStore();
+  const { budgetsWithSpend, totalBudget, totalSpent, overallRatio } = useBudgets({ month, year });
+  const categories = useCategories();
+  const { open: openAddExpense } = useAddExpense();
 
-export default function TabOneScreen() {
-  const [stored, setStored] = useState<string | null>(null);
-  const [permStatus, setPermStatus] = useState<string>('');
-  const [date, setDate] = useState(new Date());
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const getCategoryById = useCallback(
+    (id: string) => categories.find(c => c.id === id),
+    [categories]
+  );
 
-  useEffect(() => {
-    const test = async () => {
-      await AsyncStorage.setItem('test_key', 'async-storage works!');
-      const value = await AsyncStorage.getItem('test_key');
-      setStored(value);
-    };
-    test();
-  }, []);
-
-  const testNotification = async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    setPermStatus(status);
-    if (status !== 'granted') return;
-    await Notifications.scheduleNotificationAsync({
-      content: { title: 'expo-notifications works!', body: 'Test notification' },
-      trigger: null,
-    });
-  };
+  const hasBudgets = budgetsWithSpend.length > 0;
 
   return (
-    <View className="flex-1 items-center justify-center gap-2">
-      <Text style={{ fontFamily: 'Inter_700Bold' }} className="text-2xl">
-        Inter Bold
-      </Text>
-      <Text style={{ fontFamily: 'Inter_400Regular' }} className="text-base text-gray-500">
-        Inter Regular — fonts work!
-      </Text>
-      <Text className="text-xl">Tab 1</Text>
-      <Text className="text-sm text-gray-500">{stored ?? 'reading...'}</Text>
-      <BlurView intensity={60} className="mt-4 rounded-xl overflow-hidden">
-        <Text className="text-base px-6 py-3">expo-blur works!</Text>
-      </BlurView>
-      <Pressable
-        className="mt-4 bg-black px-6 py-3 rounded-xl"
-        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
       >
-        <Text className="text-white text-base">Tap for haptic</Text>
-      </Pressable>
-      <Pressable
-        className="mt-2 bg-blue-600 px-6 py-3 rounded-xl"
-        onPress={testNotification}
-      >
-        <Text className="text-white text-base">Test notification</Text>
-      </Pressable>
-      {permStatus ? (
-        <Text className="text-sm text-gray-500">Permission: {permStatus}</Text>
-      ) : null}
-      <LottieView
-        source={require('../../assets/animations/check.json')}
-        autoPlay
-        loop
-        style={{ width: 100, height: 100 }}
-      />
-      <DateTimePicker
-        value={date}
-        mode="date"
-        onChange={(_, selected) => selected && setDate(selected)}
-      />
-      <Pressable
-        className="mt-2 bg-purple-600 px-6 py-3 rounded-xl"
-        onPress={() => bottomSheetRef.current?.present()}
-      >
-        <Text className="text-white text-base">Open bottom sheet</Text>
-      </Pressable>
+        {/* Header */}
+        <View
+          style={{
+            paddingHorizontal: Spacing.md,
+            paddingTop: Spacing.md,
+            paddingBottom: Spacing.sm,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <View>
+            <Caption>{getGreeting()}</Caption>
+            <H2>Overview</H2>
+          </View>
+          <MonthSelector />
+        </View>
 
-      <BottomSheetModal ref={bottomSheetRef} snapPoints={['40%', '70%']} index={1}>
-        <BottomSheetView className="flex-1 items-center justify-center">
-          <Text style={{ fontFamily: 'Inter_600SemiBold' }} className="text-xl">
-            @gorhom/bottom-sheet works!
-          </Text>
-        </BottomSheetView>
-      </BottomSheetModal>
-    </View>
+        {hasBudgets ? (
+          <>
+            {/* Budget Ring */}
+            <View style={{ alignItems: 'center', paddingVertical: Spacing.lg }}>
+              <BudgetRing
+                ratio={overallRatio}
+                size={180}
+                centerLabel={`${Math.round(overallRatio * 100)}%`}
+                subLabel={`${formatAmount(totalSpent)} / ${formatAmount(totalBudget)}`}
+              />
+              <View style={{ alignItems: 'center', marginTop: 12 }}>
+                <Caption color={Colors.textSecondary}>
+                  {totalBudget - totalSpent >= 0
+                    ? `${formatAmount(totalBudget - totalSpent)} remaining`
+                    : `Over budget by ${formatAmount(Math.abs(totalBudget - totalSpent))}`}
+                </Caption>
+              </View>
+            </View>
+
+            {/* Category List */}
+            <View style={{ paddingHorizontal: Spacing.md }}>
+              <BodyMedium style={{ marginBottom: 12, color: Colors.textSecondary }}>
+                Budgets
+              </BodyMedium>
+              {budgetsWithSpend.map((item, index) => (
+                <CategoryBudgetCard
+                  key={item.budget.id}
+                  item={item}
+                  category={getCategoryById(item.categoryId)}
+                  index={index}
+                  onPress={() => {}}
+                />
+              ))}
+            </View>
+          </>
+        ) : (
+          <EmptyState
+            headline={emptyStates.overview.headline}
+            subtext={emptyStates.overview.subtext}
+            ctaLabel={emptyStates.overview.cta}
+            onCTA={() => {}}
+          />
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
