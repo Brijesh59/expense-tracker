@@ -7,6 +7,7 @@ import { H1, Body, Caption } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { onboarding } from '@/constants/copy';
 import { useLumaStore } from '@/db/store';
+import { Storage } from '@/db/storage';
 import { useCategories } from '@/hooks/useCategories';
 import { haptic } from '@/utils/haptics';
 import { getCurrentMonth } from '@/utils/dates';
@@ -27,6 +28,12 @@ export default function FirstExpenseScreen() {
   const [saving, setSaving] = useState(false);
 
   const selectedCategory = categories.find(c => c.id === (categoryId || 'food'));
+
+  const handleSkip = async () => {
+    haptic.light();
+    await Storage.markLaunched();
+    router.replace('/(tabs)');
+  };
 
   const handleSave = useCallback(async () => {
     if (!amount || parseFloat(amount) <= 0 || saving) return;
@@ -124,7 +131,7 @@ export default function FirstExpenseScreen() {
             value={amount}
             onChangeText={setAmount}
             placeholder={onboarding.firstExpense.placeholder}
-            placeholderTextColor={Colors.border}
+            placeholderTextColor={Colors.textMuted}
             keyboardType="decimal-pad"
             autoFocus
             style={{
@@ -195,9 +202,11 @@ export default function FirstExpenseScreen() {
           Save
         </Button>
 
-        <Caption style={{ textAlign: 'center', marginTop: Spacing.md }}>
-          {onboarding.firstExpense.helper}
-        </Caption>
+        <Pressable onPress={handleSkip} style={{ alignItems: 'center', paddingVertical: Spacing.md }}>
+          <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: Colors.textMuted }}>
+            Skip for now
+          </Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

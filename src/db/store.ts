@@ -47,15 +47,18 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
   settings: {},
 
   initialize: async () => {
+    const isFirstLaunch = !(await Storage.hasLaunched());
     const { transactions, budgets, categories, settings } = await Storage.loadAll();
 
     let finalCategories = categories;
-    
-    if (categories.length === 0) {
+    let finalBudgets = budgets;
+
+    if (isFirstLaunch) {
       finalCategories = await seedCategories();
+      finalBudgets = await Storage.getBudgets();
     }
 
-    set({ transactions, budgets, categories: finalCategories, settings, isLoaded: true });
+    set({ transactions, budgets: finalBudgets, categories: finalCategories, settings, isLoaded: true });
   },
 
   // ── Transactions ──────────────────────────────────────────────────────────

@@ -15,32 +15,11 @@ import {
 } from '@expo-google-fonts/inter';
 
 import { useLumaStore } from '@/db/store';
+import { Storage } from '@/db/storage';
 import { Colors } from '@/constants/theme';
 import { setupNotifications } from '@/services/notifications';
 
 SplashScreen.preventAutoHideAsync();
-
-function AppContent() {
-  const getSetting = useLumaStore(s => s.getSetting);
-
-  useEffect(() => {
-    const done = getSetting('onboarding_complete');
-    if (done === 'true') {
-      router.replace('/(tabs)');
-    } else {
-      router.replace('/onboarding/welcome');
-    }
-  }, []);
-
-  return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background } }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="settings" />
-      <Stack.Screen name="budget" />
-    </Stack>
-  );
-}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -51,44 +30,54 @@ export default function RootLayout() {
   });
 
   const initialize = useLumaStore(s => s.initialize);
-  const [dbReady, setDbReady] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [destination, setDestination] = useState<'/(tabs)' | '/onboarding/welcome' | null>(null);
 
   useEffect(() => {
     async function init() {
       try {
+        // Read directly from AsyncStorage — no store dependency, no race condition
+        const launched = await Storage.hasLaunched();
+        setDestination(launched ? '/(tabs)' : '/onboarding/welcome');
+
         await initialize();
         await setupNotifications();
       } catch (e) {
         console.error('Init error:', e);
+        setDestination('/onboarding/welcome');
       } finally {
-        setDbReady(true);
+        setReady(true);
       }
     }
     init();
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded && dbReady) {
+    if (fontsLoaded && ready && destination) {
       SplashScreen.hideAsync();
+      router.replace(destination);
     }
-  }, [fontsLoaded, dbReady]);
+  }, [fontsLoaded, ready, destination]);
 
-  // Safety fallback: force-hide splash after 5s in case layout event never fires (Expo SDK 54 bug)
+  // Safety fallback: force-hide splash after 5s
   useEffect(() => {
-    const timer = setTimeout(() => {
-      SplashScreen.hideAsync();
-    }, 5000);
+    const timer = setTimeout(() => SplashScreen.hideAsync(), 5000);
     return () => clearTimeout(timer);
   }, []);
 
-  if (!fontsLoaded || !dbReady) return null;
+  if (!fontsLoaded || !ready) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
       <SafeAreaProvider>
         <BottomSheetModalProvider>
           <StatusBar style="light" />
-          <AppContent />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background } }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="settings" />
+            <Stack.Screen name="budget" />
+          </Stack>
         </BottomSheetModalProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

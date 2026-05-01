@@ -6,6 +6,7 @@ const KEYS = {
   BUDGETS: '@luma/budgets',
   CATEGORIES: '@luma/categories',
   SETTINGS: '@luma/settings',
+  HAS_LAUNCHED: '@luma/has_launched',  // flat key, never cleared
 } as const;
 
 async function getJSON<T>(key: string, fallback: T): Promise<T> {
@@ -58,6 +59,15 @@ export const Storage = {
       this.getSettings(),
     ]);
     return { transactions, budgets, categories, settings };
+  },
+
+  async hasLaunched(): Promise<boolean> {
+    const val = await AsyncStorage.getItem(KEYS.HAS_LAUNCHED);
+    return val === 'true';
+  },
+
+  async markLaunched(): Promise<void> {
+    await AsyncStorage.setItem(KEYS.HAS_LAUNCHED, 'true');
   },
 
   async clearAll(): Promise<void> {

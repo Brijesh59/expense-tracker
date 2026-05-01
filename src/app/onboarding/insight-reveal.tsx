@@ -14,6 +14,7 @@ import { H1, Body, Caption } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { BudgetRing } from '@/components/ui/BudgetRing';
 import { useSettings } from '@/hooks/useSettings';
+import { Storage } from '@/db/storage';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useMonthStore } from '@/store/monthStore';
 import { formatAmount } from '@/utils/currency';
@@ -59,7 +60,7 @@ export default function InsightRevealScreen() {
   }));
 
   const handleContinue = async () => {
-    await setSetting('onboarding_complete', 'true');
+    await Storage.markLaunched();
     router.replace('/(tabs)');
   };
 

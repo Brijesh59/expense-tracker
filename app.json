@@ -16,8 +16,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.brijesh.luma",
+      "appleTeamId": "VSYD28RGYB",
       "infoPlist": {
-        "NSUserNotificationUsageDescription": "Luma sends reminders to help you log expenses and stay on budget."
+        "NSUserNotificationUsageDescription": "Luma sends reminders to help you log expenses and stay on budget.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -27,7 +29,11 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["NOTIFICATIONS", "SCHEDULE_EXACT_ALARM", "VIBRATE"],
+      "permissions": [
+        "NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM",
+        "VIBRATE"
+      ],
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.brijesh.luma"
     },
@@ -56,6 +62,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "root": "./src/app"
+      },
+      "eas": {
+        "projectId": "45af8bc2-f2ec-455d-8cd6-7bf823c4bd3c"
+      }
     }
   }
 }
