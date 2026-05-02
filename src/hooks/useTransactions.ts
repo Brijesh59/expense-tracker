@@ -25,6 +25,7 @@ export interface TransactionSection {
 
 export function useTransactions({ month, year, months, categoryId, searchQuery }: UseTransactionsOptions) {
   const allTransactions = useLumaStore(s => s.transactions);
+  const categories = useLumaStore(s => s.categories);
 
   const filtered = useMemo(() => {
     return allTransactions
@@ -45,12 +46,19 @@ export function useTransactions({ month, year, months, categoryId, searchQuery }
 
         if (categoryId && t.categoryId !== categoryId) return false;
         if (searchQuery?.trim()) {
-          return t.merchant.toLowerCase().includes(searchQuery.trim().toLowerCase());
+          const q = searchQuery.trim().toLowerCase();
+          const categoryName = categories.find(c => c.id === t.categoryId)?.name ?? '';
+          return (
+            t.merchant.toLowerCase().includes(q) ||
+            t.notes.toLowerCase().includes(q) ||
+            (t.paymentMethod ?? '').toLowerCase().includes(q) ||
+            categoryName.toLowerCase().includes(q)
+          );
         }
         return true;
       })
       .sort((a, b) => b.date - a.date);
-  }, [allTransactions, months, month, year, categoryId, searchQuery]);
+  }, [allTransactions, categories, months, month, year, categoryId, searchQuery]);
 
   const sections = useMemo<TransactionSection[]>(() => {
     const map: Record<string, Transaction[]> = {};

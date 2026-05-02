@@ -10,9 +10,16 @@ interface DailyBarChartProps {
   width?: number;
 }
 
-const HEIGHT = 160;
+const HEIGHT = 180;
 const BAR_WIDTH = 28;
-const PADDING = { top: 12, bottom: 36, left: 36, right: 12 };
+const PADDING = { top: 28, bottom: 36, left: 36, right: 12 };
+
+function fmt(v: number): string {
+  if (v === 0) return '';
+  if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
+  if (v >= 1000) return `₹${(v / 1000).toFixed(1)}k`;
+  return `₹${v}`;
+}
 
 export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
   if (!data || data.length === 0) return null;
@@ -63,6 +70,20 @@ export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
                 fill={isMax ? Colors.red : Colors.primary}
                 opacity={0.85}
               />
+              {/* Value label above bar */}
+              {d.total > 0 && (
+                <SvgText
+                  x={labelX}
+                  y={y - 5}
+                  fontSize={10}
+                  fill={isMax ? Colors.red : Colors.textSecondary}
+                  textAnchor="middle"
+                  fontFamily={Fonts.medium}
+                >
+                  {fmt(d.total)}
+                </SvgText>
+              )}
+              {/* Day label below bar */}
               <SvgText
                 x={labelX}
                 y={HEIGHT - 6}

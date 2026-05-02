@@ -49,8 +49,8 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
-      <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.lg }}>
-        <H2>Settings</H2>
+      <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.lg, paddingBottom: Spacing.md }}>
+        <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: Colors.textPrimary }}>Settings</Text>
       </View>
 
       <View style={{ paddingHorizontal: Spacing.md, gap: Spacing.sm }}>

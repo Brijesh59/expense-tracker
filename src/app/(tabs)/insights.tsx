@@ -90,6 +90,18 @@ function InsightCardItem({ card, index }: { card: InsightCard; index: number }) 
   );
 }
 
+const pill = {
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  backgroundColor: Colors.surface2,
+  borderRadius: 999,
+  paddingHorizontal: 12,
+  paddingVertical: 7,
+  gap: 5,
+  borderWidth: 1,
+  borderColor: Colors.border,
+};
+
 export default function InsightsScreen() {
   const { month, year, setMonth } = useMonthStore();
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -108,24 +120,15 @@ export default function InsightsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View
-          style={{
-            paddingHorizontal: Spacing.md,
-            paddingTop: Spacing.md,
-            paddingBottom: Spacing.sm,
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-        >
-          <H2 style={{ flex: 1 }}>Insights</H2>
-          <Pressable
-            onPress={() => { haptic.light(); setPickerVisible(true); }}
-            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface2, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 5, gap: 5 }}
-          >
+        {/* Large header */}
+        <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.lg, paddingBottom: Spacing.lg }}>
+          <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: Colors.textPrimary, marginBottom: Spacing.md }}>
+            Insights
+          </Text>
+          <Pressable onPress={() => { haptic.light(); setPickerVisible(true); }} style={[pill, { alignSelf: 'flex-start' }]}>
             <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}>
               {getMonthLabel(month, year)}
             </Text>

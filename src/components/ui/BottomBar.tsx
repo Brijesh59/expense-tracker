@@ -1,13 +1,12 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { router, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/theme';
 import { haptic } from '@/utils/haptics';
 
-interface BottomBarProps extends BottomTabBarProps {
+interface BottomBarProps {
   onAddPress: () => void;
   onMicPress: () => void;
 }
@@ -31,24 +30,23 @@ export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
     <View
       pointerEvents="box-none"
       style={{
-        height: Math.max(insets.bottom, 16) + 72,
-        backgroundColor: 'transparent',
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingBottom: Math.max(insets.bottom, 16),
+        paddingHorizontal: 20,
       }}
     >
       <View
         style={{
-          position: 'absolute',
-          bottom: Math.max(insets.bottom, 16),
-          left: 20,
-          right: 20,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
-        {/* Left group: + button and nav pill side by side */}
+        {/* Left group: + button and nav pill */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {/* + button — standalone circle */}
           <Pressable
             onPress={() => { haptic.medium(); onAddPress(); }}
             style={{
@@ -61,7 +59,6 @@ export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
             <Ionicons name="add" size={22} color={Colors.textPrimary} />
           </Pressable>
 
-          {/* Nav pill: expenses + insights */}
           <View
             style={{
               flexDirection: 'row',
@@ -75,10 +72,7 @@ export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
               gap: 2,
             }}
           >
-            <Pressable
-              onPress={() => { haptic.light(); router.navigate('/'); }}
-              style={pillItem}
-            >
+            <Pressable onPress={() => { haptic.light(); router.navigate('/'); }} style={pillItem}>
               <Ionicons
                 name={isHome ? 'easel' : 'easel-outline'}
                 size={19}
@@ -86,10 +80,7 @@ export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
               />
             </Pressable>
 
-            <Pressable
-              onPress={() => { haptic.light(); router.push('/transactions'); }}
-              style={pillItem}
-            >
+            <Pressable onPress={() => { haptic.light(); router.push('/transactions'); }} style={pillItem}>
               <Ionicons
                 name={isTransactions ? 'receipt' : 'receipt-outline'}
                 size={19}
@@ -97,10 +88,7 @@ export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
               />
             </Pressable>
 
-            <Pressable
-              onPress={() => { haptic.light(); router.push('/insights'); }}
-              style={pillItem}
-            >
+            <Pressable onPress={() => { haptic.light(); router.push('/insights'); }} style={pillItem}>
               <Ionicons
                 name={isInsights ? 'trending-up' : 'trending-up-outline'}
                 size={19}

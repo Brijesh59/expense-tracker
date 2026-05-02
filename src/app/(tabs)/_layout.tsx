@@ -26,18 +26,14 @@ export default function TabsLayout() {
   return (
     <AddExpenseContext.Provider value={{ open: openSheet }}>
       <View style={{ flex: 1 }}>
-        <Tabs
-          tabBar={(props) => (
-            <BottomBar
-              {...props}
-              onAddPress={openSheet}
-              onMicPress={() => { haptic.medium(); voiceSheetRef.current?.present(); }}
-            />
-          )}
-          screenOptions={{ headerShown: false }}
-        >
+        <Tabs tabBar={() => null} screenOptions={{ headerShown: false }}>
           <Tabs.Screen name="index" />
         </Tabs>
+
+        <BottomBar
+          onAddPress={openSheet}
+          onMicPress={() => { haptic.medium(); voiceSheetRef.current?.present(); }}
+        />
 
         <NudgeCard nudge={nudge} onDismiss={() => setNudge(null)} />
 

@@ -5,13 +5,15 @@ import {
   Text,
   TextInput,
   Pressable,
-  ScrollView,
+  FlatList,
+  Modal,
+  Animated,
+  Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { H2, Caption } from '@/components/ui/Typography';
+import { Caption } from '@/components/ui/Typography';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MultiMonthPickerModal } from '@/components/ui/MultiMonthPickerModal';
 import { AddExpenseSheet, AddExpenseSheetRef } from '@/components/sheets/AddExpenseSheet';
@@ -23,18 +25,35 @@ import { emptyStates } from '@/constants/copy';
 import { haptic } from '@/utils/haptics';
 import { TransactionRow } from '@/components/ui/TransactionRow';
 
+const SHEET_HEIGHT = Dimensions.get('window').height * 0.55;
+
 function currentMonthEntry() {
   const now = new Date();
   return { month: now.getMonth() + 1, year: now.getFullYear() };
 }
 
+const pill = {
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  backgroundColor: Colors.surface2,
+  borderRadius: Radius.full,
+  paddingHorizontal: 12,
+  paddingVertical: 7,
+  gap: 5,
+  borderWidth: 1,
+  borderColor: Colors.border,
+};
+
 export default function TransactionsScreen() {
+  const insets = useSafeAreaInsets();
   const [selectedMonths, setSelectedMonths] = useState([currentMonthEntry()]);
   const [monthPickerVisible, setMonthPickerVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
+  const [catPickerVisible, setCatPickerVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const categories = useCategories();
   const editSheetRef = useRef<AddExpenseSheetRef>(null);
+  const catSheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
 
   const { sections, total } = useTransactions({
     months: selectedMonths,
@@ -42,19 +61,27 @@ export default function TransactionsScreen() {
     searchQuery,
   });
 
+  const openCatPicker = () => {
+    haptic.light();
+    setCatPickerVisible(true);
+    Animated.timing(catSheetAnim, { toValue: 0, duration: 280, useNativeDriver: true }).start();
+  };
+
+  const closeCatPicker = () => {
+    Animated.timing(catSheetAnim, { toValue: SHEET_HEIGHT, duration: 220, useNativeDriver: true }).start(
+      () => setCatPickerVisible(false)
+    );
+  };
+
   const toggleMonth = (month: number, year: number) => {
     setSelectedMonths(prev => {
       const exists = prev.some(m => m.month === month && m.year === year);
-      if (exists) {
-        return prev.filter(m => !(m.month === month && m.year === year));
-      }
+      if (exists) return prev.filter(m => !(m.month === month && m.year === year));
       return [...prev, { month, year }].sort((a, b) =>
         a.year !== b.year ? b.year - a.year : b.month - a.month
       );
     });
   };
-
-  const clearMonths = () => setSelectedMonths([]);
 
   const monthLabel =
     selectedMonths.length === 0
@@ -63,46 +90,36 @@ export default function TransactionsScreen() {
       ? getMonthLabel(selectedMonths[0].month, selectedMonths[0].year)
       : `${selectedMonths.length} months`;
 
-  const isEmpty = sections.length === 0;
+  const selectedCat = categories.find(c => c.id === selectedCategoryId);
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: Spacing.md,
-          paddingTop: Spacing.md,
-          paddingBottom: Spacing.sm,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <H2>Transactions</H2>
-        <Pressable
-          onPress={() => { haptic.light(); setMonthPickerVisible(true); }}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: Colors.surface2,
-            borderRadius: Radius.full,
-            paddingHorizontal: 12,
-            paddingVertical: 5,
-            gap: 5,
-          }}
-        >
-          <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}>
-            {monthLabel}
-          </Text>
+  const ListHeader = (
+    <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.lg }}>
+      <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: Colors.textPrimary, marginBottom: Spacing.md }}>
+        Transactions
+      </Text>
+
+      {/* Filter pills */}
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: Spacing.sm }}>
+        <Pressable onPress={() => { haptic.light(); setMonthPickerVisible(true); }} style={pill}>
+          <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}>{monthLabel}</Text>
           <Ionicons name="chevron-down" size={11} color={Colors.textSecondary} />
+        </Pressable>
+
+        <Pressable
+          onPress={openCatPicker}
+          style={[pill, selectedCategoryId ? { borderColor: Colors.primary } : {}]}
+        >
+          {selectedCat && <Text style={{ fontSize: 13 }}>{selectedCat.icon}</Text>}
+          <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: selectedCategoryId ? Colors.primary : Colors.textPrimary }}>
+            {selectedCat ? selectedCat.name : 'Category'}
+          </Text>
+          <Ionicons name="chevron-down" size={11} color={selectedCategoryId ? Colors.primary : Colors.textSecondary} />
         </Pressable>
       </View>
 
       {/* Search bar */}
       <View
         style={{
-          marginHorizontal: Spacing.md,
-          marginBottom: Spacing.sm,
           flexDirection: 'row',
           alignItems: 'center',
           backgroundColor: Colors.surface2,
@@ -111,13 +128,14 @@ export default function TransactionsScreen() {
           borderColor: Colors.border,
           paddingHorizontal: Spacing.md,
           paddingVertical: 10,
+          marginBottom: Spacing.sm,
         }}
       >
-        <Text style={{ color: Colors.textMuted, marginRight: 8, fontSize: 15 }}>🔍</Text>
+        <Ionicons name="search-outline" size={16} color={Colors.textMuted} style={{ marginRight: 8 }} />
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search merchant..."
+          placeholder="Search"
           placeholderTextColor={Colors.textMuted}
           style={{ flex: 1, fontFamily: Fonts.regular, fontSize: 15, color: Colors.textPrimary }}
         />
@@ -127,105 +145,121 @@ export default function TransactionsScreen() {
           </Pressable>
         )}
       </View>
+    </View>
+  );
 
-      {/* Category filter chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ maxHeight: 48 }}
-        contentContainerStyle={{ paddingHorizontal: Spacing.md, paddingVertical: 4, gap: 8, flexDirection: 'row' }}
-      >
-        <Pressable
-          onPress={() => { setSelectedCategoryId(undefined); haptic.light(); }}
-          style={{
-            paddingHorizontal: 14,
-            paddingVertical: 6,
-            borderRadius: Radius.none,
-            borderWidth: 1.5,
-            borderColor: !selectedCategoryId ? Colors.primary : Colors.border,
-            backgroundColor: !selectedCategoryId ? `${Colors.primary}18` : 'transparent',
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: !selectedCategoryId ? Fonts.semibold : Fonts.regular,
-              fontSize: 13,
-              color: !selectedCategoryId ? Colors.primary : Colors.textSecondary,
-            }}
-          >
-            All
-          </Text>
-        </Pressable>
-        {categories.map(cat => (
-          <Pressable
-            key={cat.id}
-            onPress={() => { setSelectedCategoryId(cat.id === selectedCategoryId ? undefined : cat.id); haptic.light(); }}
-            style={{
-              paddingHorizontal: 14,
-              paddingVertical: 6,
-              borderRadius: Radius.none,
-              borderWidth: 1.5,
-              borderColor: selectedCategoryId === cat.id ? cat.color : Colors.border,
-              backgroundColor: selectedCategoryId === cat.id ? `${cat.color}18` : 'transparent',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <Text style={{ fontSize: 12 }}>{cat.icon}</Text>
-            <Text
-              style={{
-                fontFamily: selectedCategoryId === cat.id ? Fonts.semibold : Fonts.regular,
-                fontSize: 12,
-                color: selectedCategoryId === cat.id ? cat.color : Colors.textSecondary,
-              }}
-            >
-              {cat.name}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      {isEmpty ? (
-        <EmptyState
-          headline={emptyStates.transactions.headline}
-          subtext={emptyStates.transactions.subtext}
-        />
-      ) : (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderSectionHeader={({ section: { title } }) => (
-            <View style={{ paddingHorizontal: Spacing.md, paddingVertical: 8, backgroundColor: Colors.background }}>
-              <Caption>{title}</Caption>
-            </View>
-          )}
-          renderItem={({ item, index }) => (
-            <TransactionRow
-              transaction={item}
-              category={categories.find(c => c.id === item.categoryId)}
-              index={index}
-              onPress={() => {
-                haptic.light();
-                editSheetRef.current?.presentEdit(item);
-              }}
-            />
-          )}
-          ListFooterComponent={
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={
+          <EmptyState headline={emptyStates.transactions.headline} subtext={emptyStates.transactions.subtext} />
+        }
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={{ paddingHorizontal: Spacing.md, paddingVertical: 8, backgroundColor: Colors.background }}>
+            <Caption>{title}</Caption>
+          </View>
+        )}
+        renderItem={({ item, index }) => (
+          <TransactionRow
+            transaction={item}
+            category={categories.find(c => c.id === item.categoryId)}
+            index={index}
+            onPress={() => { haptic.light(); editSheetRef.current?.presentEdit(item); }}
+          />
+        )}
+        ListFooterComponent={
+          sections.length > 0 ? (
             <View style={{ padding: Spacing.md, alignItems: 'center' }}>
               <Caption>Total: {formatAmount(total)}</Caption>
             </View>
-          }
-          contentContainerStyle={{ paddingBottom: 120 }}
-          stickySectionHeadersEnabled
-        />
-      )}
+          ) : null
+        }
+        contentContainerStyle={{ paddingBottom: 140 }}
+        stickySectionHeadersEnabled
+      />
+
+      {/* Category picker modal */}
+      <Modal visible={catPickerVisible} transparent animationType="none" onRequestClose={closeCatPicker}>
+        <Pressable
+          onPress={closeCatPicker}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' }}
+        >
+          <Pressable onPress={() => {}}>
+            <Animated.View
+              style={{
+                transform: [{ translateY: catSheetAnim }],
+                height: SHEET_HEIGHT,
+                backgroundColor: Colors.surface,
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                overflow: 'hidden',
+              }}
+            >
+              <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border }} />
+              </View>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border }}>
+                <Text style={{ fontFamily: Fonts.semibold, fontSize: 16, color: Colors.textPrimary }}>
+                  Filter by category
+                </Text>
+                {selectedCategoryId && (
+                  <Pressable onPress={() => { haptic.light(); setSelectedCategoryId(undefined); closeCatPicker(); }}>
+                    <Text style={{ fontFamily: Fonts.medium, fontSize: 14, color: Colors.primary }}>Clear</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              <FlatList
+                data={[{ id: '__all__', name: 'All categories', icon: '', color: '' }, ...categories]}
+                keyExtractor={c => c.id}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 8 }}
+                renderItem={({ item }) => {
+                  const isAll = item.id === '__all__';
+                  const selected = isAll ? !selectedCategoryId : selectedCategoryId === item.id;
+                  return (
+                    <Pressable
+                      onPress={() => {
+                        haptic.light();
+                        setSelectedCategoryId(isAll ? undefined : item.id);
+                        closeCatPicker();
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingHorizontal: Spacing.md,
+                        paddingVertical: 14,
+                        borderBottomWidth: 1,
+                        borderBottomColor: Colors.border,
+                        backgroundColor: selected ? `${Colors.primary}14` : 'transparent',
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        {!isAll && <Text style={{ fontSize: 18 }}>{item.icon}</Text>}
+                        <Text style={{ fontFamily: selected ? Fonts.semibold : Fonts.regular, fontSize: 15, color: selected ? Colors.primary : Colors.textPrimary }}>
+                          {item.name}
+                        </Text>
+                      </View>
+                      {selected && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
+                    </Pressable>
+                  );
+                }}
+              />
+            </Animated.View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <MultiMonthPickerModal
         visible={monthPickerVisible}
         selectedMonths={selectedMonths}
         onToggle={toggleMonth}
-        onClear={clearMonths}
+        onClear={() => setSelectedMonths([])}
         onClose={() => setMonthPickerVisible(false)}
       />
       <AddExpenseSheet ref={editSheetRef} />

@@ -11,6 +11,7 @@ export interface InsightCard {
 
 export function useInsights({ month, year }: { month: number; year: number }) {
   const allTransactions = useLumaStore(s => s.transactions);
+  const categories = useLumaStore(s => s.categories);
 
   const prevMonth = month === 1 ? 12 : month - 1;
   const prevYear = month === 1 ? year - 1 : year;
@@ -62,7 +63,9 @@ export function useInsights({ month, year }: { month: number; year: number }) {
 
     const topCategory = [...spendByCategory].sort((a, b) => b.total - a.total)[0];
     if (topCategory && totalSpent > 0 && topCategory.total / totalSpent > 0.3) {
-      cards.push({ id: 'top-cat', text: 'One category is driving most of your spend', type: 'neutral' });
+      const catName = categories.find(c => c.id === topCategory.categoryId)?.name ?? 'One category';
+      const pct = Math.round((topCategory.total / totalSpent) * 100);
+      cards.push({ id: 'top-cat', text: `${catName} is driving ${pct}% of your spend this month`, type: 'neutral' });
     }
 
     if (transactions.length > 0) {
@@ -77,7 +80,7 @@ export function useInsights({ month, year }: { month: number; year: number }) {
     }
 
     return cards;
-  }, [transactions, spendByCategory, totalSpent, percentChange]);
+  }, [transactions, spendByCategory, totalSpent, percentChange, categories]);
 
   return {
     totalSpent,

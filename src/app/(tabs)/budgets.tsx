@@ -31,24 +31,17 @@ export default function BudgetsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View
-          style={{
-            paddingHorizontal: Spacing.md,
-            paddingTop: Spacing.md,
-            paddingBottom: Spacing.sm,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <H2 style={{ flex: 1 }}>Budgets</H2>
+        {/* Large header */}
+        <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.lg, paddingBottom: Spacing.lg }}>
+          <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: Colors.textPrimary, marginBottom: Spacing.md }}>
+            Budgets
+          </Text>
           <Pressable
             onPress={() => { haptic.light(); setPickerVisible(true); }}
-            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface2, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 5, gap: 5 }}
+            style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: Colors.surface2, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 7, gap: 5, borderWidth: 1, borderColor: Colors.border }}
           >
             <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}>
               {getMonthLabel(month, year)}
