@@ -4,11 +4,11 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withDelay,
-  withSpring,
+  withTiming,
+  Easing,
   interpolateColor,
   useDerivedValue,
 } from 'react-native-reanimated';
-import { springs } from '@/constants/animations';
 import { Colors } from '@/constants/theme';
 
 interface ProgressBarProps {
@@ -23,7 +23,7 @@ export function ProgressBar({ ratio, delay = 0, height = 6, style, trackColor }:
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withDelay(delay, withSpring(Math.min(ratio, 1), springs.smooth));
+    progress.value = withDelay(delay, withTiming(Math.min(ratio, 1), { duration: 600, easing: Easing.out(Easing.cubic) }));
   }, [ratio, delay]);
 
   const fillColor = useDerivedValue(() =>

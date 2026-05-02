@@ -4,13 +4,13 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withDelay,
-  withSpring,
   withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { Colors, Fonts, Spacing } from '@/constants/theme';
 import { BodyMedium, Caption } from '@/components/ui/Typography';
 import { formatAmount } from '@/utils/currency';
-import { stagger, springs } from '@/constants/animations';
+import { stagger } from '@/constants/animations';
 import type { Transaction } from '@/db/types';
 import type { Category } from '@/db/types';
 
@@ -26,7 +26,7 @@ export function TransactionRow({ transaction, category, index, onPress }: Transa
   const opacity = useSharedValue(0);
 
   React.useEffect(() => {
-    translateX.value = withDelay(index * stagger, withSpring(0, springs.snappy));
+    translateX.value = withDelay(index * stagger, withTiming(0, { duration: 280, easing: Easing.out(Easing.cubic) }));
     opacity.value = withDelay(index * stagger, withTiming(1, { duration: 250 }));
   }, []);
 

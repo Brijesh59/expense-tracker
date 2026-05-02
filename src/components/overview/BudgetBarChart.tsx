@@ -5,10 +5,10 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withDelay,
-  withSpring,
+  withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { Colors, Fonts, Spacing } from '@/constants/theme';
-import { springs } from '@/constants/animations';
 import type { BudgetWithSpend } from '@/hooks/useBudgets';
 import type { Category } from '@/db/types';
 
@@ -43,7 +43,7 @@ function BarColumn({ item, category, maxBudget, index, onPress }: BarColumnProps
   const fillHeight = useSharedValue(0);
 
   useEffect(() => {
-    fillHeight.value = withDelay(index * 80, withSpring(targetFillHeight, springs.smooth));
+    fillHeight.value = withDelay(index * 80, withTiming(targetFillHeight, { duration: 500, easing: Easing.out(Easing.cubic) }));
   }, [targetFillHeight]);
 
   const fillStyle = useAnimatedStyle(() => ({

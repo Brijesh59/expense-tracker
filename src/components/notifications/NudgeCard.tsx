@@ -3,13 +3,12 @@ import { View, Text } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withDelay,
   withTiming,
+  Easing,
   runOnJS,
 } from 'react-native-reanimated';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { springs } from '@/constants/animations';
 import type { NudgeResult } from '@/utils/nudgeEngine';
 
 const NUDGE_COLORS: Record<string, string> = {
@@ -32,7 +31,7 @@ export function NudgeCard({ nudge, onDismiss }: NudgeCardProps) {
   useEffect(() => {
     if (!nudge) return;
 
-    translateY.value = withSpring(0, springs.bouncy);
+    translateY.value = withTiming(0, { duration: 280, easing: Easing.out(Easing.cubic) });
     opacity.value = withTiming(1, { duration: 200 });
 
     // Auto dismiss after 2.5s

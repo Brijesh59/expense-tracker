@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
 } from 'react-native-reanimated';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { H1, Body } from '@/components/ui/Typography';
@@ -13,7 +12,6 @@ import { Button } from '@/components/ui/Button';
 import { onboarding } from '@/constants/copy';
 import { useSettings } from '@/hooks/useSettings';
 import { haptic } from '@/utils/haptics';
-import { springs } from '@/constants/animations';
 
 export default function IntentScreen() {
   const [selected, setSelected] = useState<string | null>(null);

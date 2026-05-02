@@ -5,7 +5,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withDelay,
-  withSpring,
+  Easing,
   withTiming,
 } from 'react-native-reanimated';
 import { Colors, Spacing, Fonts } from '@/constants/theme';
@@ -39,7 +39,7 @@ function InsightCardItem({ card, index }: { card: InsightCard; index: number }) 
   const opacity = useSharedValue(0);
 
   React.useEffect(() => {
-    translateY.value = withDelay(index * 100, withSpring(0, { damping: 20, stiffness: 300 }));
+    translateY.value = withDelay(index * 100, withTiming(0, { duration: 280, easing: Easing.out(Easing.cubic) }));
     opacity.value = withDelay(index * 100, withTiming(1, { duration: 300 }));
   }, []);
 

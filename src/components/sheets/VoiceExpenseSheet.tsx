@@ -1,5 +1,5 @@
 import React, { useState, useCallback, forwardRef, useRef, useImperativeHandle, useEffect } from 'react';
-import { View, Text, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
@@ -26,7 +26,7 @@ import { useLumaStore } from '@/db/store';
 import { haptic } from '@/utils/haptics';
 import { computeNudge, NudgeResult } from '@/utils/nudgeEngine';
 import { getCurrentMonth } from '@/utils/dates';
-import { processVoiceInput, VoiceResult } from '@/utils/parseVoiceExpense';
+import { processVoiceInput, VoiceResult, LogItem, BudgetItem } from '@/utils/parseVoiceExpense';
 
 export interface VoiceExpenseSheetRef {
   present: () => void;
@@ -38,7 +38,7 @@ interface VoiceExpenseSheetProps {
   onEditFirst?: (prefill: { amount: string; categoryId: string; merchant: string; paymentMethod: string | null; notes: string }) => void;
 }
 
-type VoiceState = 'idle' | 'listening' | 'parsing' | 'log_result' | 'query_result' | 'error' | 'unavailable';
+type VoiceState = 'idle' | 'listening' | 'parsing' | 'log_result' | 'budget_result' | 'query_result' | 'error' | 'unavailable';
 
 export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSheetProps>(
   ({ onExpenseSaved, onEditFirst }, ref) => {
@@ -46,15 +46,18 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
     const categories = useCategories();
     const addTransaction = useLumaStore(s => s.addTransaction);
     const setSetting = useLumaStore(s => s.setSetting);
+    const addBudget = useLumaStore(s => s.addBudget);
+    const updateBudget = useLumaStore(s => s.updateBudget);
     const allTransactions = useLumaStore(s => s.transactions);
     const allBudgets = useLumaStore(s => s.budgets);
 
     const [voiceState, setVoiceState] = useState<VoiceState>('idle');
     const [transcript, setTranscript] = useState('');
     const [voiceResult, setVoiceResult] = useState<VoiceResult | null>(null);
+    const [pendingItems, setPendingItems] = useState<LogItem[]>([]);
+    const [pendingBudgets, setPendingBudgets] = useState<BudgetItem[]>([]);
     const [saving, setSaving] = useState(false);
 
-    // Pulsing ring for listening state
     const pulseScale = useSharedValue(1);
     const pulseOpacity = useSharedValue(0);
     const pulseStyle = useAnimatedStyle(() => ({
@@ -82,7 +85,15 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
         processVoiceInput(text, categories, allTransactions)
           .then(result => {
             setVoiceResult(result);
-            setVoiceState(result.intent === 'log' ? 'log_result' : 'query_result');
+            if (result.intent === 'log') {
+              setPendingItems(result.items);
+              setVoiceState('log_result');
+            } else if (result.intent === 'budget') {
+              setPendingBudgets(result.items);
+              setVoiceState('budget_result');
+            } else {
+              setVoiceState('query_result');
+            }
             haptic.light();
           })
           .catch(err => {
@@ -104,6 +115,8 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       setVoiceState('idle');
       setTranscript('');
       setVoiceResult(null);
+      setPendingItems([]);
+      setPendingBudgets([]);
     }, []);
 
     const startListening = useCallback(async () => {
@@ -113,6 +126,8 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       if (!granted) { setVoiceState('error'); return; }
       setTranscript('');
       setVoiceResult(null);
+      setPendingItems([]);
+      setPendingBudgets([]);
       setVoiceState('listening');
       ExpoSpeechRecognitionModule.start({ lang: 'en-IN', interimResults: true, continuous: false });
       haptic.medium();
@@ -122,88 +137,147 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       ExpoSpeechRecognitionModule.stop();
     }, []);
 
-    // Narrow to log intent for save/edit handlers
-    const logResult = voiceResult?.intent === 'log' ? voiceResult : null;
+    const removeItem = useCallback((index: number) => {
+      setPendingItems(prev => {
+        const next = prev.filter((_, i) => i !== index);
+        if (next.length === 0) {
+          setVoiceState('idle');
+          setTranscript('');
+          setVoiceResult(null);
+        }
+        return next;
+      });
+    }, []);
 
-    const handleLogIt = useCallback(async () => {
-      if (!logResult?.amount || saving) return;
+    const removeBudget = useCallback((index: number) => {
+      setPendingBudgets(prev => {
+        const next = prev.filter((_, i) => i !== index);
+        if (next.length === 0) {
+          setVoiceState('idle');
+          setTranscript('');
+          setVoiceResult(null);
+        }
+        return next;
+      });
+    }, []);
+
+    const handleLogAll = useCallback(async () => {
+      const validItems = pendingItems.filter((i): i is LogItem & { amount: number } => !!i.amount);
+      if (validItems.length === 0 || saving) return;
       setSaving(true);
       haptic.medium();
 
-      const categoryId = logResult.categoryId ?? 'other';
-      const paymentMethod = logResult.paymentMethod ?? 'UPI';
       const { month, year } = getCurrentMonth();
+      let lastNudge: NudgeResult | null = null;
 
       try {
-        await addTransaction({
-          amount: logResult.amount,
-          categoryId,
-          merchant: logResult.merchant,
-          date: Date.now(),
-          paymentMethod,
-          notes: logResult.notes,
-        });
-        await setSetting('last_category_id', categoryId);
-        await setSetting('last_payment_method', paymentMethod);
+        for (const item of validItems) {
+          const categoryId = item.categoryId ?? 'other';
+          const paymentMethod = item.paymentMethod ?? 'UPI';
 
-        const catTransactions = allTransactions.filter(t => {
-          if (t.categoryId !== categoryId) return false;
-          const d = new Date(t.date);
-          return d.getMonth() + 1 === month && d.getFullYear() === year;
-        });
-        const categoryBudget = allBudgets.find(
-          b => b.categoryId === categoryId && b.month === month && b.year === year
-        )?.amount ?? null;
-        const categorySpent = catTransactions.reduce((s, t) => s + t.amount, 0) + logResult.amount;
-        const now = new Date();
-        const todayCount = catTransactions.filter(t => {
-          const d = new Date(t.date);
-          return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        }).length + 1;
+          await addTransaction({
+            amount: item.amount,
+            categoryId,
+            merchant: item.merchant,
+            date: Date.now(),
+            paymentMethod,
+            notes: item.notes,
+          });
+          await setSetting('last_category_id', categoryId);
+          await setSetting('last_payment_method', paymentMethod);
 
-        const selectedCategory = categories.find(c => c.id === categoryId);
-        const nudge = computeNudge({
-          transactionAmount: logResult.amount,
-          categorySpentTotal: categorySpent,
-          categoryBudget,
-          categoryName: selectedCategory?.name ?? 'this',
-          sameCategoryTodayCount: todayCount,
-        });
+          const catTransactions = allTransactions.filter(t => {
+            if (t.categoryId !== categoryId) return false;
+            const d = new Date(t.date);
+            return d.getMonth() + 1 === month && d.getFullYear() === year;
+          });
+          const categoryBudget = allBudgets.find(
+            b => b.categoryId === categoryId && b.month === month && b.year === year
+          )?.amount ?? null;
+          const categorySpent = catTransactions.reduce((s, t) => s + t.amount, 0) + item.amount;
+          const now = new Date();
+          const todayCount = catTransactions.filter(t => {
+            const d = new Date(t.date);
+            return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          }).length + 1;
+
+          const cat = categories.find(c => c.id === categoryId);
+          lastNudge = computeNudge({
+            transactionAmount: item.amount,
+            categorySpentTotal: categorySpent,
+            categoryBudget,
+            categoryName: cat?.name ?? 'this',
+            sameCategoryTodayCount: todayCount,
+          });
+        }
 
         sheetRef.current?.dismiss();
-        onExpenseSaved?.(nudge);
+        if (lastNudge) onExpenseSaved?.(lastNudge);
       } catch (e) {
         console.error('VoiceExpenseSheet save error:', e);
       } finally {
         setSaving(false);
       }
-    }, [logResult, saving, addTransaction, setSetting, allTransactions, allBudgets, categories, onExpenseSaved]);
+    }, [pendingItems, saving, addTransaction, setSetting, allTransactions, allBudgets, categories, onExpenseSaved]);
 
     const handleEditFirst = useCallback(() => {
-      if (!logResult) return;
+      if (pendingItems.length !== 1) return;
+      const item = pendingItems[0];
       onEditFirst?.({
-        amount: String(logResult.amount ?? ''),
-        categoryId: logResult.categoryId ?? 'other',
-        merchant: logResult.merchant,
-        paymentMethod: logResult.paymentMethod,
-        notes: logResult.notes,
+        amount: String(item.amount ?? ''),
+        categoryId: item.categoryId ?? 'other',
+        merchant: item.merchant,
+        paymentMethod: item.paymentMethod,
+        notes: item.notes,
       });
       sheetRef.current?.dismiss();
-    }, [logResult, onEditFirst]);
+    }, [pendingItems, onEditFirst]);
+
+    const handleSetBudgets = useCallback(async () => {
+      const validBudgets = pendingBudgets.filter(
+        (b): b is BudgetItem & { amount: number; categoryId: string } => !!(b.amount && b.categoryId)
+      );
+      if (validBudgets.length === 0 || saving) return;
+      setSaving(true);
+      haptic.medium();
+
+      const { month: currentMonth, year: currentYear } = getCurrentMonth();
+
+      try {
+        for (const item of validBudgets) {
+          const month = item.month ?? currentMonth;
+          const year = item.year ?? currentYear;
+          const existing = allBudgets.find(
+            b => b.categoryId === item.categoryId && b.month === month && b.year === year
+          );
+          if (existing) {
+            await updateBudget(existing.id, { amount: item.amount });
+          } else {
+            await addBudget({ categoryId: item.categoryId, amount: item.amount, month, year });
+          }
+        }
+        sheetRef.current?.dismiss();
+      } catch (e) {
+        console.error('VoiceExpenseSheet budget save error:', e);
+      } finally {
+        setSaving(false);
+      }
+    }, [pendingBudgets, saving, allBudgets, addBudget, updateBudget]);
 
     useImperativeHandle(ref, () => ({
       present: () => { resetState(); sheetRef.current?.present(); },
       dismiss: () => sheetRef.current?.dismiss(),
     }));
 
-    const selectedCategory = logResult?.categoryId
-      ? categories.find(c => c.id === logResult.categoryId)
+    const singleItem = pendingItems.length === 1 ? pendingItems[0] : null;
+    const selectedCategory = singleItem?.categoryId
+      ? categories.find(c => c.id === singleItem.categoryId)
       : null;
 
     return (
       <BottomSheetModal
         ref={sheetRef}
-        snapPoints={['55%']}
+        snapPoints={['65%']}
         enablePanDownToClose
         backgroundStyle={{ backgroundColor: Colors.surface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
         handleIndicatorStyle={{ backgroundColor: Colors.textMuted, width: 36 }}
@@ -234,10 +308,10 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                 <Ionicons name="mic-outline" size={30} color={Colors.textPrimary} />
               </Pressable>
               <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
-                Log an expense or ask about your spending{'\n'}
-                <Text style={{ color: Colors.textMuted }}>"₹200 on coffee at Starbucks"</Text>
+                Log expenses, set budgets, or ask about your spending{'\n'}
+                <Text style={{ color: Colors.textMuted }}>"₹200 on coffee and ₹500 on groceries"</Text>
                 {'\n'}
-                <Text style={{ color: Colors.textMuted }}>"How much did I spend on clothes?"</Text>
+                <Text style={{ color: Colors.textMuted }}>"Set food budget to ₹5000"</Text>
               </Text>
             </>
           )}
@@ -279,50 +353,166 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
           )}
 
           {/* ── Log result ── */}
-          {voiceState === 'log_result' && logResult && (
+          {voiceState === 'log_result' && pendingItems.length > 0 && (
             <View style={{ width: '100%', alignItems: 'center' }}>
-              {logResult.amount ? (
-                <Text style={{ fontFamily: Fonts.bold, fontSize: 52, color: Colors.textPrimary, marginBottom: 6 }}>
-                  ₹{Number.isInteger(logResult.amount) ? logResult.amount : logResult.amount.toFixed(2)}
-                </Text>
+              {pendingItems.length === 1 ? (
+                <>
+                  {singleItem?.amount ? (
+                    <Text style={{ fontFamily: Fonts.bold, fontSize: 52, color: Colors.textPrimary, marginBottom: 6 }}>
+                      ₹{Number.isInteger(singleItem.amount) ? singleItem.amount : singleItem.amount!.toFixed(2)}
+                    </Text>
+                  ) : (
+                    <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: Colors.red, marginBottom: 6 }}>
+                      No amount detected
+                    </Text>
+                  )}
+
+                  {selectedCategory ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 18 }}>{selectedCategory.icon}</Text>
+                      <Text style={{ fontFamily: Fonts.medium, fontSize: 16, color: Colors.textSecondary }}>
+                        {selectedCategory.name}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: Colors.textMuted, marginBottom: 4 }}>
+                      No category matched — will use Other
+                    </Text>
+                  )}
+
+                  {singleItem?.merchant ? <Caption style={{ marginBottom: 2 }}>{singleItem.merchant}</Caption> : null}
+                  {singleItem?.notes ? <Caption style={{ marginBottom: 2, color: Colors.textMuted }}>{singleItem.notes}</Caption> : null}
+                  {singleItem?.paymentMethod ? (
+                    <Caption style={{ marginBottom: Spacing.xl, color: Colors.textMuted }}>{singleItem.paymentMethod}</Caption>
+                  ) : (
+                    <View style={{ marginBottom: Spacing.xl }} />
+                  )}
+
+                  <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                    <View style={{ flex: 1 }}>
+                      <Button onPress={handleEditFirst} variant="secondary" fullWidth>Edit</Button>
+                    </View>
+                    <View style={{ flex: 2 }}>
+                      <Button onPress={handleLogAll} disabled={!singleItem?.amount} loading={saving} fullWidth>
+                        Log it
+                      </Button>
+                    </View>
+                  </View>
+                </>
               ) : (
-                <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: Colors.red, marginBottom: 6 }}>
-                  No amount detected
-                </Text>
+                <>
+                  <ScrollView style={{ width: '100%', maxHeight: 220 }} showsVerticalScrollIndicator={false}>
+                    {pendingItems.map((item, idx) => {
+                      const cat = item.categoryId ? categories.find(c => c.id === item.categoryId) : null;
+                      return (
+                        <View
+                          key={idx}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: 10,
+                            borderBottomWidth: 1,
+                            borderBottomColor: Colors.border,
+                          }}
+                        >
+                          <Text style={{ fontFamily: Fonts.semibold, fontSize: 15, color: Colors.textPrimary, width: 72 }}>
+                            {item.amount ? `₹${item.amount}` : '—'}
+                          </Text>
+                          <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              {cat ? <Text style={{ fontSize: 13 }}>{cat.icon}</Text> : null}
+                              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textSecondary }}>
+                                {cat?.name ?? 'Other'}
+                              </Text>
+                            </View>
+                            {(item.merchant || item.notes) ? (
+                              <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: Colors.textMuted }}>
+                                {[item.merchant, item.notes].filter(Boolean).join(' · ')}
+                              </Text>
+                            ) : null}
+                          </View>
+                          <Pressable onPress={() => removeItem(idx)} style={{ padding: 8 }}>
+                            <Ionicons name="close" size={16} color={Colors.textMuted} />
+                          </Pressable>
+                        </View>
+                      );
+                    })}
+                  </ScrollView>
+                  <View style={{ marginTop: Spacing.lg, width: '100%' }}>
+                    <Button
+                      onPress={handleLogAll}
+                      disabled={!pendingItems.some(i => i.amount)}
+                      loading={saving}
+                      fullWidth
+                    >
+                      Log all ({pendingItems.length})
+                    </Button>
+                  </View>
+                </>
               )}
 
-              {selectedCategory ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Text style={{ fontSize: 18 }}>{selectedCategory.icon}</Text>
-                  <Text style={{ fontFamily: Fonts.medium, fontSize: 16, color: Colors.textSecondary }}>
-                    {selectedCategory.name}
-                  </Text>
-                </View>
-              ) : (
-                <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: Colors.textMuted, marginBottom: 4 }}>
-                  No category matched — will use Other
-                </Text>
-              )}
+              <Pressable onPress={resetState} style={{ marginTop: Spacing.md, padding: 4, alignSelf: 'center' }}>
+                <Caption style={{ color: Colors.textMuted }}>Try again</Caption>
+              </Pressable>
+            </View>
+          )}
 
-              {logResult.merchant ? <Caption style={{ marginBottom: 2 }}>{logResult.merchant}</Caption> : null}
-              {logResult.notes ? <Caption style={{ marginBottom: 2, color: Colors.textMuted }}>{logResult.notes}</Caption> : null}
-              {logResult.paymentMethod ? (
-                <Caption style={{ marginBottom: Spacing.xl, color: Colors.textMuted }}>{logResult.paymentMethod}</Caption>
-              ) : (
-                <View style={{ marginBottom: Spacing.xl }} />
-              )}
+          {/* ── Budget result ── */}
+          {voiceState === 'budget_result' && pendingBudgets.length > 0 && (
+            <View style={{ width: '100%', alignItems: 'center' }}>
+              <ScrollView style={{ width: '100%', maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+                {pendingBudgets.map((item, idx) => {
+                  const cat = item.categoryId ? categories.find(c => c.id === item.categoryId) : null;
+                  const { month: currentMonth, year: currentYear } = getCurrentMonth();
+                  const month = item.month ?? currentMonth;
+                  const year = item.year ?? currentYear;
+                  const isCurrentMonth = month === currentMonth && year === currentYear;
+                  const monthLabel = isCurrentMonth
+                    ? 'This month'
+                    : new Date(year, month - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
-              <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
-                <View style={{ flex: 1 }}>
-                  <Button onPress={handleEditFirst} variant="secondary" fullWidth>Edit</Button>
-                </View>
-                <View style={{ flex: 2 }}>
-                  <Button onPress={handleLogIt} disabled={!logResult.amount} loading={saving} fullWidth>
-                    Log it
-                  </Button>
-                </View>
+                  return (
+                    <View
+                      key={idx}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 12,
+                        borderBottomWidth: 1,
+                        borderBottomColor: Colors.border,
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          {cat ? <Text style={{ fontSize: 16 }}>{cat.icon}</Text> : null}
+                          <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: Colors.textPrimary }}>
+                            {cat?.name ?? 'Unknown category'}
+                          </Text>
+                        </View>
+                        <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: Colors.textMuted, marginTop: 2 }}>
+                          {monthLabel}
+                        </Text>
+                      </View>
+                      <Text style={{ fontFamily: Fonts.bold, fontSize: 16, color: Colors.primary }}>
+                        {item.amount ? `₹${item.amount.toLocaleString('en-IN')}` : '—'}
+                      </Text>
+                      <Pressable onPress={() => removeBudget(idx)} style={{ padding: 8, marginLeft: 8 }}>
+                        <Ionicons name="close" size={16} color={Colors.textMuted} />
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+              <View style={{ marginTop: Spacing.lg, width: '100%' }}>
+                <Button
+                  onPress={handleSetBudgets}
+                  disabled={!pendingBudgets.some(b => b.amount && b.categoryId)}
+                  loading={saving}
+                  fullWidth
+                >
+                  Set budget{pendingBudgets.length > 1 ? 's' : ''} ({pendingBudgets.length})
+                </Button>
               </View>
-
               <Pressable onPress={resetState} style={{ marginTop: Spacing.md, padding: 4, alignSelf: 'center' }}>
                 <Caption style={{ color: Colors.textMuted }}>Try again</Caption>
               </Pressable>

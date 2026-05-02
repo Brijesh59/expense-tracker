@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { ScrollView, View, Text, Pressable } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -90,27 +91,100 @@ export default function OverviewScreen() {
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Settings icon */}
+        {/* Header icons */}
         <View
           style={{
             paddingHorizontal: Spacing.md,
             paddingTop: Spacing.sm,
-            alignItems: 'flex-end',
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 8,
           }}
         >
-          <Pressable
-            onPress={() => router.push('/(tabs)/settings')}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: Colors.surface,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="settings-outline" size={18} color={Colors.textSecondary} />
-          </Pressable>
+          {/* Budget icon with circular progress ring */}
+          {(() => {
+            const RING = 44;
+            const CENTER = 22;
+            const RADIUS = 19;
+            const STROKE = 2.5;
+            const circumference = 2 * Math.PI * RADIUS;
+            const progress = totalBudget > 0 ? Math.min(totalSpent / totalBudget, 1) : 0;
+            const dashOffset = circumference * (1 - progress);
+            const ringColor = totalSpent >= totalBudget ? Colors.red : Colors.primary;
+            return (
+              <View style={{ width: RING, height: RING }}>
+                <Svg width={RING} height={RING} style={{ position: 'absolute' }}>
+                  {totalBudget > 0 && (
+                    <Circle
+                      cx={CENTER} cy={CENTER} r={RADIUS}
+                      fill="none"
+                      stroke={Colors.border}
+                      strokeWidth={STROKE}
+                    />
+                  )}
+                  {totalBudget > 0 && progress > 0 && (
+                    <Circle
+                      cx={CENTER} cy={CENTER} r={RADIUS}
+                      fill="none"
+                      stroke={ringColor}
+                      strokeWidth={STROKE}
+                      strokeDasharray={circumference}
+                      strokeDashoffset={dashOffset}
+                      strokeLinecap="round"
+                      rotation={-90}
+                      origin={`${CENTER}, ${CENTER}`}
+                    />
+                  )}
+                </Svg>
+                <Pressable
+                  onPress={() => { haptic.light(); router.push('/(tabs)/budgets'); }}
+                  style={{
+                    position: 'absolute',
+                    top: 4, left: 4,
+                    width: 36, height: 36,
+                    borderRadius: 18,
+                    backgroundColor: Colors.surface,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="wallet-outline" size={18} color={Colors.textSecondary} />
+                </Pressable>
+              </View>
+            );
+          })()}
+
+          {/* Insights + Settings — same 44×44 container, invisible ring to match budget button size */}
+          {[
+            { icon: 'trending-up-outline', route: '/(tabs)/insights' },
+            { icon: 'settings-outline', route: '/(tabs)/settings' },
+          ].map(({ icon, route }) => (
+            <View key={route} style={{ width: 44, height: 44 }}>
+              <Svg width={44} height={44} style={{ position: 'absolute' }}>
+                <Circle
+                  cx={22} cy={22} r={19}
+                  fill="none"
+                  stroke={Colors.background}
+                  strokeWidth={2.5}
+                />
+              </Svg>
+              <Pressable
+                onPress={() => { haptic.light(); router.push(route as any); }}
+                style={{
+                  position: 'absolute',
+                  top: 4, left: 4,
+                  width: 36, height: 36,
+                  borderRadius: 18,
+                  backgroundColor: Colors.surface,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name={icon as any} size={18} color={Colors.textSecondary} />
+              </Pressable>
+            </View>
+          ))}
         </View>
 
         {/* Big spent total — ₹ before the number */}

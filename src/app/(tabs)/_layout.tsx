@@ -4,7 +4,6 @@ import { Tabs } from 'expo-router';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +13,6 @@ import { AddExpenseSheet, AddExpenseSheetRef } from '@/components/sheets/AddExpe
 import { VoiceExpenseSheet, VoiceExpenseSheetRef } from '@/components/sheets/VoiceExpenseSheet';
 import { NudgeCard } from '@/components/notifications/NudgeCard';
 import { Colors, Fonts } from '@/constants/theme';
-import { springs } from '@/constants/animations';
 import { haptic } from '@/utils/haptics';
 import type { NudgeResult } from '@/utils/nudgeEngine';
 
@@ -122,9 +120,9 @@ export default function TabsLayout() {
           {/* FAB button */}
           <AnimatedPressable
             onPressIn={() => {
-              translateX.value = withSpring(SHADOW_OFFSET, springs.snappy);
-              translateY.value = withSpring(SHADOW_OFFSET, springs.snappy);
-              shadowOpacity.value = withSpring(0, springs.snappy);
+              translateX.value = withTiming(SHADOW_OFFSET, { duration: 80 });
+              translateY.value = withTiming(SHADOW_OFFSET, { duration: 80 });
+              shadowOpacity.value = withTiming(0, { duration: 80 });
               haptic.medium();
             }}
             onPressOut={() => {

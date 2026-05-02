@@ -6,7 +6,7 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
-  withSpring,
+  Easing,
 } from 'react-native-reanimated';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { Caption } from '@/components/ui/Typography';
@@ -43,8 +43,8 @@ export function LumaCat({ state, size = 64 }: LumaCatProps) {
     } else if (state === 'excited') {
       floatY.value = withRepeat(
         withSequence(
-          withSpring(-10, { damping: 8, stiffness: 400 }),
-          withSpring(0, { damping: 8, stiffness: 400 })
+          withTiming(-10, { duration: 300, easing: Easing.inOut(Easing.cubic) }),
+          withTiming(0, { duration: 300, easing: Easing.inOut(Easing.cubic) })
         ),
         -1,
         true

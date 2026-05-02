@@ -4,12 +4,12 @@ import Svg, { Circle } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   withDelay,
-  withSpring,
+  withTiming,
+  Easing,
   useDerivedValue,
   useAnimatedProps,
   interpolateColor,
 } from 'react-native-reanimated';
-import { springs } from '@/constants/animations';
 import { Colors } from '@/constants/theme';
 import { H1, Caption } from './Typography';
 
@@ -36,7 +36,7 @@ export function BudgetRing({
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withDelay(300, withSpring(Math.min(ratio, 1), springs.slow));
+    progress.value = withDelay(300, withTiming(Math.min(ratio, 1), { duration: 700, easing: Easing.out(Easing.cubic) }));
   }, [ratio]);
 
   const strokeDashoffset = useDerivedValue(

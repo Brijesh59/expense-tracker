@@ -6,14 +6,13 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withDelay,
-  withSpring,
   withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { Colors, Spacing } from '@/constants/theme';
 import { H1, Body, Caption } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { onboarding } from '@/constants/copy';
-import { springs } from '@/constants/animations';
 
 export default function WelcomeScreen() {
   const mascotY = useSharedValue(30);
@@ -26,16 +25,16 @@ export default function WelcomeScreen() {
   const ctaOpacity = useSharedValue(0);
 
   useEffect(() => {
-    mascotY.value = withSpring(0, springs.smooth);
+    mascotY.value = withTiming(0, { duration: 350, easing: Easing.out(Easing.cubic) });
     mascotOpacity.value = withTiming(1, { duration: 600 });
 
-    headlineY.value = withDelay(150, withSpring(0, springs.smooth));
+    headlineY.value = withDelay(150, withTiming(0, { duration: 350, easing: Easing.out(Easing.cubic) }));
     headlineOpacity.value = withDelay(150, withTiming(1, { duration: 500 }));
 
-    subtextY.value = withDelay(300, withSpring(0, springs.smooth));
+    subtextY.value = withDelay(300, withTiming(0, { duration: 350, easing: Easing.out(Easing.cubic) }));
     subtextOpacity.value = withDelay(300, withTiming(1, { duration: 500 }));
 
-    ctaY.value = withDelay(500, withSpring(0, springs.smooth));
+    ctaY.value = withDelay(500, withTiming(0, { duration: 350, easing: Easing.out(Easing.cubic) }));
     ctaOpacity.value = withDelay(500, withTiming(1, { duration: 500 }));
   }, []);
 

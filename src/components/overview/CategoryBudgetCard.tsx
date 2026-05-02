@@ -4,15 +4,15 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withDelay,
-  withSpring,
   withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { BodyMedium, Caption } from '@/components/ui/Typography';
 import { Colors, Spacing } from '@/constants/theme';
 import { formatAmount } from '@/utils/currency';
-import { springs, stagger } from '@/constants/animations';
+import { stagger } from '@/constants/animations';
 import type { BudgetWithSpend } from '@/hooks/useBudgets';
 import type { Category } from '@/db/types';
 
@@ -28,7 +28,7 @@ export function CategoryBudgetCard({ item, category, index, onPress }: CategoryB
   const opacity = useSharedValue(0);
 
   useEffect(() => {
-    translateY.value = withDelay(index * stagger, withSpring(0, springs.snappy));
+    translateY.value = withDelay(index * stagger, withTiming(0, { duration: 280, easing: Easing.out(Easing.cubic) }));
     opacity.value = withDelay(index * stagger, withTiming(1, { duration: 300 }));
   }, []);
 

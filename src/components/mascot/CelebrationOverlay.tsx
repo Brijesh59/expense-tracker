@@ -3,14 +3,13 @@ import { View, Text, Pressable, Modal } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withDelay,
   withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { H2, Body } from '@/components/ui/Typography';
 import { LumaCat } from './LumaCat';
-import { springs } from '@/constants/animations';
 import { haptic } from '@/utils/haptics';
 
 interface CelebrationOverlayProps {
@@ -26,7 +25,7 @@ export function CelebrationOverlay({ visible, message, onDismiss }: CelebrationO
   useEffect(() => {
     if (visible) {
       haptic.success();
-      scale.value = withSpring(1, springs.bouncy);
+      scale.value = withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) });
       opacity.value = withTiming(1, { duration: 300 });
 
       const timer = setTimeout(() => {

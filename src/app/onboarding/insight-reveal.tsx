@@ -6,8 +6,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withDelay,
-  withSpring,
   withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { H1, Body, Caption } from '@/components/ui/Typography';
@@ -19,7 +19,6 @@ import { useBudgets } from '@/hooks/useBudgets';
 import { useMonthStore } from '@/store/monthStore';
 import { formatAmount } from '@/utils/currency';
 import { haptic } from '@/utils/haptics';
-import { springs } from '@/constants/animations';
 
 const NUDGE_COLORS: Record<string, string> = {
   good: Colors.green,
@@ -42,10 +41,10 @@ export default function InsightRevealScreen() {
 
   useEffect(() => {
     haptic.success();
-    cardY.value = withSpring(0, springs.bouncy);
+    cardY.value = withTiming(0, { duration: 350, easing: Easing.out(Easing.cubic) });
     cardOpacity.value = withTiming(1, { duration: 400 });
 
-    dashboardY.value = withDelay(600, withSpring(0, springs.smooth));
+    dashboardY.value = withDelay(600, withTiming(0, { duration: 350, easing: Easing.out(Easing.cubic) }));
     dashboardOpacity.value = withDelay(600, withTiming(1, { duration: 500 }));
   }, []);
 

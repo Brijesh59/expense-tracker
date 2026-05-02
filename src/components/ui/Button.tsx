@@ -1,8 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { springs } from '@/constants/animations';
 import { haptic } from '@/utils/haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -83,9 +82,9 @@ export function Button({
 
   const handlePressIn = () => {
     if (hasShadow) {
-      translateX.value = withSpring(SHADOW_OFFSET, springs.snappy);
-      translateY.value = withSpring(SHADOW_OFFSET, springs.snappy);
-      shadowOpacity.value = withSpring(0, springs.snappy);
+      translateX.value = withTiming(SHADOW_OFFSET, { duration: 80 });
+      translateY.value = withTiming(SHADOW_OFFSET, { duration: 80 });
+      shadowOpacity.value = withTiming(0, { duration: 80 });
     }
     haptic.light();
   };

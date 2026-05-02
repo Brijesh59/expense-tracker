@@ -1,8 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { springs } from '@/constants/animations';
 import { haptic } from '@/utils/haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -25,8 +24,8 @@ export function CategoryChip({ icon, name, color, selected = false, onPress, siz
 
   return (
     <AnimatedPressable
-      onPressIn={() => { scale.value = withSpring(0.93, springs.snappy); haptic.light(); }}
-      onPressOut={() => { scale.value = withSpring(1, springs.snappy); }}
+      onPressIn={() => { scale.value = withTiming(0.93, { duration: 80 }); haptic.light(); }}
+      onPressOut={() => { scale.value = withTiming(1, { duration: 120 }); }}
       onPress={onPress}
       style={[
         animatedStyle,

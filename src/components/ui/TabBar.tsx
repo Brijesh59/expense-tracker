@@ -117,7 +117,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
       }}
     >
-      {state.routes.filter(r => r.name !== 'settings').map((route, index) => {
+      {state.routes.filter(r => !['settings', 'budgets', 'insights'].includes(r.name)).map((route, index) => {
         const isFocused = state.index === index;
 
         const onPress = () => {

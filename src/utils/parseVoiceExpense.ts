@@ -12,12 +12,28 @@ const MODELS: Record<Provider, string> = {
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
+export type LogItem = {
+  amount: number | null;
+  categoryId: string | null;
+  merchant: string;
+  paymentMethod: string | null;
+  notes: string;
+};
+
+export type BudgetItem = {
+  categoryId: string | null;
+  amount: number | null;
+  month: number | null;
+  year: number | null;
+};
+
 export type VoiceResult =
-  | { intent: 'log'; amount: number | null; categoryId: string | null; merchant: string; paymentMethod: string | null; notes: string }
+  | { intent: 'log'; items: LogItem[] }
+  | { intent: 'budget'; items: BudgetItem[] }
   | { intent: 'query'; answer: string };
 
 // Kept for backward-compat with AddExpenseSheet prefill shape
-export type ParsedExpense = Extract<VoiceResult, { intent: 'log' }>;
+export type ParsedExpense = LogItem;
 
 // ─── Transaction context builder ─────────────────────────────────────────────
 
@@ -109,15 +125,20 @@ User said: "${transcript}"
 
 Decide the intent and respond with JSON only — no markdown, no extra text.
 
-If the user wants to LOG an expense:
-{ "intent": "log", "amount": <number|null>, "categoryId": <id from list or null>, "merchant": <store/app name or "">, "paymentMethod": <"Cash"|"Card"|"UPI"|null>, "notes": <what was bought or ""> }
+If the user wants to LOG one or more expenses:
+{ "intent": "log", "items": [ { "amount": <number|null>, "categoryId": <id from list or null>, "merchant": <store/app name or "">, "paymentMethod": <"Cash"|"Card"|"UPI"|null>, "notes": <what was bought or ""> }, ... ] }
+
+If the user wants to SET one or more budgets:
+{ "intent": "budget", "items": [ { "categoryId": <id from list or null>, "amount": <monthly budget amount or null>, "month": <1-12 or null for current month>, "year": <4-digit year or null for current year> }, ... ] }
 
 If the user is ASKING a question about their spending:
 { "intent": "query", "answer": <1–2 sentence conversational answer using ₹ for amounts> }
 
 Rules:
+- If multiple expenses are mentioned in a single utterance, include each as a separate item in the array.
 - Infer category from context: "bought clothes" → shopping, "had lunch" → food, "took Uber" → transport.
 - When ambiguous (e.g. just an amount), prefer "log".
+- For budget month/year: use null if not explicitly stated — it defaults to current month/year.
 - For queries, use the spending history above to give an accurate answer.`;
 }
 
@@ -134,7 +155,7 @@ async function callOpenAI(prompt: string): Promise<VoiceResult> {
       model: MODELS.openai,
       response_format: { type: 'json_object' },
       temperature: 0,
-      max_tokens: 256,
+      max_tokens: 512,
       messages: [
         { role: 'system', content: 'You are a personal finance assistant. Always respond with valid JSON.' },
         { role: 'user', content: prompt },
@@ -158,7 +179,7 @@ async function callGemini(prompt: string): Promise<VoiceResult> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json', temperature: 0, maxOutputTokens: 256 },
+      generationConfig: { responseMimeType: 'application/json', temperature: 0, maxOutputTokens: 512 },
     }),
   });
   if (!res.ok) throw new Error(`Gemini API error ${res.status}: ${await res.text().catch(() => '')}`);
