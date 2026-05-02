@@ -10,7 +10,7 @@ import Animated, {
   useAnimatedProps,
   interpolateColor,
 } from 'react-native-reanimated';
-import { Colors } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { H1, Caption } from './Typography';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -30,6 +30,7 @@ export function BudgetRing({
   centerLabel,
   subLabel,
 }: BudgetRingProps) {
+  const { colors } = useTheme();
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -43,11 +44,15 @@ export function BudgetRing({
     () => circumference * (1 - progress.value)
   );
 
+  const green = colors.green;
+  const primary = colors.primary;
+  const red = colors.red;
+
   const strokeColor = useDerivedValue(() =>
     interpolateColor(
       progress.value,
       [0, 0.7, 0.85, 1],
-      [Colors.green, Colors.green, Colors.primary, Colors.red]
+      [green, green, primary, red]
     )
   );
 
@@ -59,16 +64,14 @@ export function BudgetRing({
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} style={{ position: 'absolute' }}>
-        {/* Track */}
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={Colors.border}
+          stroke={colors.border}
           strokeWidth={strokeWidth}
           fill="none"
         />
-        {/* Progress */}
         <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
@@ -83,7 +86,6 @@ export function BudgetRing({
           animatedProps={animatedProps}
         />
       </Svg>
-      {/* Center content */}
       <View style={{ alignItems: 'center' }}>
         {centerLabel && (
           <H1 style={{ fontSize: 36, letterSpacing: -2, fontVariant: ['tabular-nums'] }}>

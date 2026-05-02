@@ -8,7 +8,8 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Caption } from '@/components/ui/Typography';
 import { catCopy } from '@/constants/copy';
 
@@ -28,6 +29,7 @@ interface LumaCatProps {
 }
 
 export function LumaCat({ state, size = 64 }: LumaCatProps) {
+  const { colors } = useTheme();
   const floatY = useSharedValue(0);
 
   React.useEffect(() => {
@@ -67,11 +69,11 @@ export function LumaCat({ state, size = 64 }: LumaCatProps) {
             width: size,
             height: size,
             borderRadius: size / 2,
-            backgroundColor: `${Colors.primary}20`,
+            backgroundColor: `${colors.primary}20`,
             alignItems: 'center',
             justifyContent: 'center',
             borderWidth: 1.5,
-            borderColor: `${Colors.primary}30`,
+            borderColor: `${colors.primary}30`,
           },
         ]}
       >

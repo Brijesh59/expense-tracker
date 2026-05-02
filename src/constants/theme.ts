@@ -1,18 +1,61 @@
-export const Colors = {
-  primary: '#F8E71C',                    // CRED signature yellow
-  primaryShadow: '#C4B800',             // neoPOP hard shadow for yellow buttons
+export type ThemeColors = {
+  primary: string;
+  primaryShadow: string;
+  accent: string;
+  onPrimary: string;
+  background: string;
+  surface: string;
+  surface2: string;
+  input: string;
+  inputBorder: string;
+  border: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  green: string;
+  yellow: string;
+  red: string;
+};
+
+export const darkColors: ThemeColors = {
+  primary: '#F8E71C',
+  primaryShadow: '#C4B800',
   accent: '#F8E71C',
-  background: '#0D0D0D',                // Near-pure black
-  surface: '#1A1A1A',                   // Card surfaces
-  surface2: '#242424',                  // Inputs, elevated surfaces
-  border: 'rgba(255,255,255,0.1)',      // Subtle white rim
+  onPrimary: '#0D0D0D',
+  background: '#0D0D0D',
+  surface: '#1A1A1A',
+  surface2: '#242424',
+  input: '#242424',
+  inputBorder: 'rgba(255,255,255,0.1)',
+  border: 'rgba(255,255,255,0.1)',
   textPrimary: '#FFFFFF',
   textSecondary: '#999999',
   textMuted: '#555555',
-  green: '#00C853',                     // CRED green
+  green: '#00C853',
   yellow: '#F8E71C',
   red: '#FF4444',
-} as const;
+};
+
+export const lightColors: ThemeColors = {
+  primary: '#D7B80F',
+  primaryShadow: '#A58900',
+  accent: '#D7B80F',
+  onPrimary: '#212121',
+  background: '#F4F7FA',
+  surface: '#FEFCF7',
+  surface2: '#EEF2F5',
+  input: '#F7F9FB',
+  inputBorder: 'rgba(33,33,33,0.08)',
+  border: 'rgba(33,33,33,0.1)',
+  textPrimary: '#212121',
+  textSecondary: '#4F5B62',
+  textMuted: '#7A8288',
+  green: '#2E9D63',
+  yellow: '#B99A00',
+  red: '#D6453D',
+};
+
+export const Colors = darkColors;
 
 export const Fonts = {
   regular: 'Inter_400Regular',
@@ -31,12 +74,12 @@ export const Spacing = {
 } as const;
 
 export const Radius = {
-  none: 0,    // neoPOP buttons — square corners
-  sm: 4,      // inputs
-  md: 8,      // cards
-  lg: 12,     // sheets, modals
+  none: 0,
+  sm: 4,
+  md: 8,
+  lg: 12,
   xl: 20,
-  full: 9999, // chips, pills
+  full: 9999,
 } as const;
 
-export type ColorKey = keyof typeof Colors;
+export type ColorKey = keyof ThemeColors;

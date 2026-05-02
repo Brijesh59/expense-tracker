@@ -16,7 +16,7 @@ import {
 
 import { useLumaStore } from '@/db/store';
 import { Storage } from '@/db/storage';
-import { Colors } from '@/constants/theme';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { setupNotifications } from '@/services/notifications';
 
 SplashScreen.preventAutoHideAsync();
@@ -68,11 +68,21 @@ export default function RootLayout() {
   if (!fontsLoaded || !ready) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <ThemeProvider>
+      <ThemedApp />
+    </ThemeProvider>
+  );
+}
+
+function ThemedApp() {
+  const { colors, isDark } = useTheme();
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
         <BottomSheetModalProvider>
-          <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background } }}>
+          <StatusBar style={isDark ? 'light' : 'dark'} />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="onboarding" />
             <Stack.Screen name="settings" />

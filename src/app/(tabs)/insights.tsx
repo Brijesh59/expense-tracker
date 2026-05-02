@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, View, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
@@ -10,8 +9,9 @@ import Animated, {
   Easing,
   withTiming,
 } from 'react-native-reanimated';
-import { Colors, Spacing, Fonts, Radius } from '@/constants/theme';
-import { H2, H3, BodyMedium, Caption } from '@/components/ui/Typography';
+import { Spacing, Fonts } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { H3, BodyMedium, Caption } from '@/components/ui/Typography';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MonthPickerModal } from '@/components/ui/MonthPickerModal';
@@ -26,21 +26,22 @@ import { formatAmount } from '@/utils/currency';
 import { emptyStates } from '@/constants/copy';
 import type { InsightCard } from '@/hooks/useInsights';
 
-const INSIGHT_BG: Record<string, string> = {
-  good: `${Colors.green}18`,
-  neutral: `${Colors.primary}18`,
-  warning: `${Colors.yellow}18`,
-};
-
-const INSIGHT_DOT: Record<string, string> = {
-  good: Colors.green,
-  neutral: Colors.primary,
-  warning: Colors.yellow,
-};
-
 function InsightCardItem({ card, index }: { card: InsightCard; index: number }) {
+  const { colors, isDark } = useTheme();
   const translateY = useSharedValue(30);
   const opacity = useSharedValue(0);
+
+  const insightBg: Record<string, string> = {
+    good: isDark ? `${colors.green}18` : '#F1F8F4',
+    neutral: isDark ? `${colors.primary}18` : '#F2F6F9',
+    warning: isDark ? `${colors.yellow}18` : '#FFF9E6',
+  };
+
+  const insightDot: Record<string, string> = {
+    good: colors.green,
+    neutral: colors.primary,
+    warning: colors.yellow,
+  };
 
   React.useEffect(() => {
     translateY.value = withDelay(index * 100, withTiming(0, { duration: 280, easing: Easing.out(Easing.cubic) }));
@@ -56,7 +57,7 @@ function InsightCardItem({ card, index }: { card: InsightCard; index: number }) 
     <Animated.View style={[style, { marginBottom: 10 }]}>
       <View
         style={{
-          backgroundColor: INSIGHT_BG[card.type] ?? Colors.surface2,
+          backgroundColor: insightBg[card.type] ?? colors.surface2,
           borderRadius: 12,
           paddingVertical: 14,
           paddingHorizontal: Spacing.md,
@@ -64,7 +65,7 @@ function InsightCardItem({ card, index }: { card: InsightCard; index: number }) 
           alignItems: 'center',
           gap: 10,
           borderWidth: 1,
-          borderColor: `${INSIGHT_DOT[card.type] ?? Colors.primary}30`,
+          borderColor: isDark ? `${insightDot[card.type] ?? colors.primary}30` : 'rgba(60,110,145,0.12)',
         }}
       >
         <View
@@ -72,14 +73,14 @@ function InsightCardItem({ card, index }: { card: InsightCard; index: number }) 
             width: 8,
             height: 8,
             borderRadius: 4,
-            backgroundColor: INSIGHT_DOT[card.type] ?? Colors.primary,
+            backgroundColor: insightDot[card.type] ?? colors.primary,
           }}
         />
         <Text
           style={{
             fontFamily: Fonts.medium,
             fontSize: 14,
-            color: Colors.textPrimary,
+            color: colors.textPrimary,
             flex: 1,
           }}
         >
@@ -90,19 +91,8 @@ function InsightCardItem({ card, index }: { card: InsightCard; index: number }) 
   );
 }
 
-const pill = {
-  flexDirection: 'row' as const,
-  alignItems: 'center' as const,
-  backgroundColor: Colors.surface2,
-  borderRadius: 999,
-  paddingHorizontal: 12,
-  paddingVertical: 7,
-  gap: 5,
-  borderWidth: 1,
-  borderColor: Colors.border,
-};
-
 export default function InsightsScreen() {
+  const { colors, isDark } = useTheme();
   const { month, year, setMonth } = useMonthStore();
   const [pickerVisible, setPickerVisible] = useState(false);
   const {
@@ -115,24 +105,39 @@ export default function InsightsScreen() {
   } = useInsights({ month, year });
   const categories = useCategories();
 
+  const pill = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: isDark ? colors.surface2 : '#F2F6F9',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: isDark ? colors.border : 'rgba(60,110,145,0.12)',
+  };
+  const insightCardStyle = {
+    backgroundColor: isDark ? colors.surface : '#FBFDFE',
+    borderColor: isDark ? colors.border : 'rgba(60,110,145,0.12)',
+  };
+
   const isEmpty = totalSpent === 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Large header */}
         <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.lg, paddingBottom: Spacing.lg }}>
-          <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: Colors.textPrimary, marginBottom: Spacing.md }}>
+          <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: colors.textPrimary, marginBottom: Spacing.md }}>
             Insights
           </Text>
           <Pressable onPress={() => { haptic.light(); setPickerVisible(true); }} style={[pill, { alignSelf: 'flex-start' }]}>
-            <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}>
+            <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textPrimary }}>
               {getMonthLabel(month, year)}
             </Text>
-            <Ionicons name="chevron-down" size={11} color={Colors.textSecondary} />
+            <Ionicons name="chevron-down" size={11} color={colors.textSecondary} />
           </Pressable>
         </View>
 
@@ -143,8 +148,7 @@ export default function InsightsScreen() {
           />
         ) : (
           <View style={{ paddingHorizontal: Spacing.md }}>
-            {/* Summary */}
-            <Card style={{ marginBottom: Spacing.md, flexDirection: 'row', alignItems: 'center' }}>
+            <Card style={{ ...insightCardStyle, marginBottom: Spacing.md, flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
                 <Caption style={{ marginBottom: 4 }}>Total spent</Caption>
                 <H3 style={{ fontSize: 26 }}>{formatAmount(totalSpent)}</H3>
@@ -156,7 +160,7 @@ export default function InsightsScreen() {
                     style={{
                       fontFamily: Fonts.semibold,
                       fontSize: 16,
-                      color: percentChange > 0 ? Colors.red : Colors.green,
+                      color: percentChange > 0 ? colors.red : colors.green,
                       marginTop: 4,
                     }}
                   >
@@ -166,10 +170,9 @@ export default function InsightsScreen() {
               )}
             </Card>
 
-            {/* Donut Chart */}
             {spendByCategory.length > 0 && (
-              <Card style={{ marginBottom: Spacing.md, paddingTop: Spacing.lg }}>
-                <BodyMedium style={{ marginBottom: Spacing.md, color: Colors.textSecondary }}>
+              <Card style={{ ...insightCardStyle, marginBottom: Spacing.md, paddingTop: Spacing.lg }}>
+                <BodyMedium style={{ marginBottom: Spacing.md, color: colors.textSecondary }}>
                   By category
                 </BodyMedium>
                 <DonutChart
@@ -180,20 +183,18 @@ export default function InsightsScreen() {
               </Card>
             )}
 
-            {/* Daily Bar Chart */}
             {last7DaysSpend.length > 0 && (
-              <Card style={{ marginBottom: Spacing.md }}>
-                <BodyMedium style={{ marginBottom: Spacing.sm, color: Colors.textSecondary }}>
+              <Card style={{ ...insightCardStyle, marginBottom: Spacing.md }}>
+                <BodyMedium style={{ marginBottom: Spacing.sm, color: colors.textSecondary }}>
                   Last 7 days
                 </BodyMedium>
                 <DailyBarChart data={last7DaysSpend} width={320} />
               </Card>
             )}
 
-            {/* Insight Cards */}
             {insightCards.length > 0 && (
               <View style={{ marginBottom: Spacing.md }}>
-                <BodyMedium style={{ marginBottom: 12, color: Colors.textSecondary }}>
+                <BodyMedium style={{ marginBottom: 12, color: colors.textSecondary }}>
                   Observations
                 </BodyMedium>
                 {insightCards.map((card, index) => (

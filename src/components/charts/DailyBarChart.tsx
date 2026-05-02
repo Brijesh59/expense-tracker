@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
-import { Colors, Fonts } from '@/constants/theme';
+import { Fonts } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { DailySpend } from '@/utils/analytics';
 import { getDayOfWeekLabel } from '@/utils/dates';
 
@@ -22,6 +23,8 @@ function fmt(v: number): string {
 }
 
 export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
+  const { colors } = useTheme();
+
   if (!data || data.length === 0) return null;
 
   const chartW = width - PADDING.left - PADDING.right;
@@ -32,7 +35,6 @@ export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
   return (
     <View>
       <Svg width={width} height={HEIGHT}>
-        {/* Gridlines */}
         {[0.25, 0.5, 0.75, 1].map(frac => {
           const y = PADDING.top + chartH * (1 - frac);
           return (
@@ -42,7 +44,7 @@ export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
               x2={PADDING.left + chartW}
               y1={y}
               y2={y}
-              stroke={Colors.border}
+              stroke={colors.border}
               strokeDasharray="4 4"
               strokeWidth={1}
               opacity={0.5}
@@ -67,28 +69,26 @@ export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
                 height={barH}
                 rx={5}
                 ry={5}
-                fill={isMax ? Colors.red : Colors.primary}
+                fill={isMax ? colors.red : colors.primary}
                 opacity={0.85}
               />
-              {/* Value label above bar */}
               {d.total > 0 && (
                 <SvgText
                   x={labelX}
                   y={y - 5}
                   fontSize={10}
-                  fill={isMax ? Colors.red : Colors.textSecondary}
+                  fill={isMax ? colors.red : colors.textSecondary}
                   textAnchor="middle"
                   fontFamily={Fonts.medium}
                 >
                   {fmt(d.total)}
                 </SvgText>
               )}
-              {/* Day label below bar */}
               <SvgText
                 x={labelX}
                 y={HEIGHT - 6}
                 fontSize={11}
-                fill={Colors.textMuted}
+                fill={colors.textMuted}
                 textAnchor="middle"
                 fontFamily={Fonts.regular}
               >

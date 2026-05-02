@@ -7,7 +7,8 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { BodyMedium, Caption } from '@/components/ui/Typography';
 import { formatAmount } from '@/utils/currency';
 import { stagger } from '@/constants/animations';
@@ -22,6 +23,7 @@ interface TransactionRowProps {
 }
 
 export function TransactionRow({ transaction, category, index, onPress }: TransactionRowProps) {
+  const { colors } = useTheme();
   const translateX = useSharedValue(-20);
   const opacity = useSharedValue(0);
 
@@ -45,7 +47,7 @@ export function TransactionRow({ transaction, category, index, onPress }: Transa
           paddingVertical: 12,
           paddingHorizontal: Spacing.md,
           borderBottomWidth: 1,
-          borderBottomColor: `${Colors.border}60`,
+          borderBottomColor: `${colors.border}60`,
         }}
       >
         <View
@@ -53,7 +55,7 @@ export function TransactionRow({ transaction, category, index, onPress }: Transa
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: category ? `${category.color}25` : Colors.surface2,
+            backgroundColor: category ? `${category.color}25` : colors.surface2,
             alignItems: 'center',
             justifyContent: 'center',
             marginRight: 12,
@@ -75,7 +77,7 @@ export function TransactionRow({ transaction, category, index, onPress }: Transa
           style={{
             fontFamily: Fonts.semibold,
             fontSize: 15,
-            color: Colors.textPrimary,
+            color: colors.textPrimary,
             fontVariant: ['tabular-nums'],
           }}
         >

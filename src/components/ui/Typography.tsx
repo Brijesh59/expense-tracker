@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, TextProps } from 'react-native';
-import { Colors, Fonts } from '@/constants/theme';
+import { Fonts } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface TypographyProps extends TextProps {
   children: React.ReactNode;
@@ -8,10 +9,11 @@ interface TypographyProps extends TextProps {
 }
 
 export function H1({ children, style, color, ...props }: TypographyProps) {
+  const { colors } = useTheme();
   return (
     <Text
       style={[
-        { fontFamily: Fonts.bold, fontSize: 28, color: color ?? Colors.textPrimary, letterSpacing: -0.5 },
+        { fontFamily: Fonts.bold, fontSize: 28, color: color ?? colors.textPrimary, letterSpacing: -0.5 },
         style,
       ]}
       {...props}
@@ -22,10 +24,11 @@ export function H1({ children, style, color, ...props }: TypographyProps) {
 }
 
 export function H2({ children, style, color, ...props }: TypographyProps) {
+  const { colors } = useTheme();
   return (
     <Text
       style={[
-        { fontFamily: Fonts.semibold, fontSize: 22, color: color ?? Colors.textPrimary, letterSpacing: -0.3 },
+        { fontFamily: Fonts.semibold, fontSize: 22, color: color ?? colors.textPrimary, letterSpacing: -0.3 },
         style,
       ]}
       {...props}
@@ -36,10 +39,11 @@ export function H2({ children, style, color, ...props }: TypographyProps) {
 }
 
 export function H3({ children, style, color, ...props }: TypographyProps) {
+  const { colors } = useTheme();
   return (
     <Text
       style={[
-        { fontFamily: Fonts.semibold, fontSize: 17, color: color ?? Colors.textPrimary },
+        { fontFamily: Fonts.semibold, fontSize: 17, color: color ?? colors.textPrimary },
         style,
       ]}
       {...props}
@@ -50,10 +54,11 @@ export function H3({ children, style, color, ...props }: TypographyProps) {
 }
 
 export function Body({ children, style, color, ...props }: TypographyProps) {
+  const { colors } = useTheme();
   return (
     <Text
       style={[
-        { fontFamily: Fonts.regular, fontSize: 15, color: color ?? Colors.textPrimary, lineHeight: 22 },
+        { fontFamily: Fonts.regular, fontSize: 15, color: color ?? colors.textPrimary, lineHeight: 22 },
         style,
       ]}
       {...props}
@@ -64,10 +69,11 @@ export function Body({ children, style, color, ...props }: TypographyProps) {
 }
 
 export function BodyMedium({ children, style, color, ...props }: TypographyProps) {
+  const { colors } = useTheme();
   return (
     <Text
       style={[
-        { fontFamily: Fonts.medium, fontSize: 15, color: color ?? Colors.textPrimary },
+        { fontFamily: Fonts.medium, fontSize: 15, color: color ?? colors.textPrimary },
         style,
       ]}
       {...props}
@@ -78,10 +84,11 @@ export function BodyMedium({ children, style, color, ...props }: TypographyProps
 }
 
 export function Caption({ children, style, color, ...props }: TypographyProps) {
+  const { colors } = useTheme();
   return (
     <Text
       style={[
-        { fontFamily: Fonts.regular, fontSize: 12, color: color ?? Colors.textSecondary, lineHeight: 16 },
+        { fontFamily: Fonts.regular, fontSize: 12, color: color ?? colors.textSecondary, lineHeight: 16 },
         style,
       ]}
       {...props}
@@ -92,13 +99,14 @@ export function Caption({ children, style, color, ...props }: TypographyProps) {
 }
 
 export function AmountText({ children, style, color, ...props }: TypographyProps) {
+  const { colors } = useTheme();
   return (
     <Text
       style={[
         {
           fontFamily: Fonts.bold,
           fontSize: 32,
-          color: color ?? Colors.textPrimary,
+          color: color ?? colors.textPrimary,
           letterSpacing: -1,
           fontVariant: ['tabular-nums'],
         },

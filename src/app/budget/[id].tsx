@@ -9,7 +9,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, Spacing, Radius } from '@/constants/theme';
+import { Fonts, Spacing, Radius } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { H1, H3, BodyMedium, Caption } from '@/components/ui/Typography';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { DailyBarChart } from '@/components/charts/DailyBarChart';
@@ -25,6 +26,7 @@ import { haptic } from '@/utils/haptics';
 import type { Transaction } from '@/db/types';
 
 export default function BudgetDetailScreen() {
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const budgets = useLumaStore(s => s.budgets);
   const categories = useCategories();
@@ -44,7 +46,7 @@ export default function BudgetDetailScreen() {
 
   if (!budget || !category) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
         <Caption>Budget not found</Caption>
       </SafeAreaView>
     );
@@ -56,13 +58,13 @@ export default function BudgetDetailScreen() {
   const pctUsed = Math.round((total / budget.amount) * 100);
 
   const accentColor = ratio >= 1
-    ? Colors.red
+    ? colors.red
     : ratio >= 0.85
-    ? Colors.primary
-    : Colors.green;
+    ? colors.primary
+    : colors.green;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <View
         style={{
@@ -71,7 +73,7 @@ export default function BudgetDetailScreen() {
           paddingHorizontal: Spacing.md,
           paddingVertical: 12,
           borderBottomWidth: 1,
-          borderBottomColor: Colors.border,
+          borderBottomColor: colors.border,
         }}
       >
         <Pressable
@@ -82,11 +84,11 @@ export default function BudgetDetailScreen() {
             alignItems: 'center',
             justifyContent: 'center',
             borderWidth: 1,
-            borderColor: Colors.border,
-            backgroundColor: Colors.surface,
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
           }}
         >
-          <Ionicons name="chevron-back" size={18} color={Colors.textPrimary} />
+          <Ionicons name="chevron-back" size={18} color={colors.textPrimary} />
         </Pressable>
 
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -102,11 +104,11 @@ export default function BudgetDetailScreen() {
             alignItems: 'center',
             justifyContent: 'center',
             borderWidth: 1,
-            borderColor: Colors.border,
-            backgroundColor: Colors.surface,
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
           }}
         >
-          <Ionicons name="ellipsis-vertical" size={16} color={Colors.textSecondary} />
+          <Ionicons name="ellipsis-vertical" size={16} color={colors.textSecondary} />
         </Pressable>
       </View>
 
@@ -118,9 +120,9 @@ export default function BudgetDetailScreen() {
         <View
           style={{
             margin: Spacing.md,
-            backgroundColor: Colors.surface,
+            backgroundColor: colors.surface,
             borderWidth: 1,
-            borderColor: Colors.border,
+            borderColor: colors.border,
             borderRadius: Radius.md,
             padding: Spacing.md,
           }}
@@ -133,7 +135,7 @@ export default function BudgetDetailScreen() {
                 style={{
                   fontFamily: Fonts.bold,
                   fontSize: 36,
-                  color: Colors.textPrimary,
+                  color: colors.textPrimary,
                   letterSpacing: -1,
                   fontVariant: ['tabular-nums'],
                 }}
@@ -173,9 +175,9 @@ export default function BudgetDetailScreen() {
             style={{
               marginHorizontal: Spacing.md,
               marginBottom: Spacing.md,
-              backgroundColor: Colors.surface,
+              backgroundColor: colors.surface,
               borderWidth: 1,
-              borderColor: Colors.border,
+              borderColor: colors.border,
               borderRadius: Radius.md,
               padding: Spacing.md,
             }}
@@ -184,7 +186,7 @@ export default function BudgetDetailScreen() {
               style={{
                 fontFamily: Fonts.semibold,
                 fontSize: 11,
-                color: Colors.textMuted,
+                color: colors.textMuted,
                 letterSpacing: 1,
                 marginBottom: Spacing.md,
                 textTransform: 'uppercase',
@@ -203,7 +205,7 @@ export default function BudgetDetailScreen() {
               style={{
                 fontFamily: Fonts.semibold,
                 fontSize: 11,
-                color: Colors.textMuted,
+                color: colors.textMuted,
                 letterSpacing: 1,
                 marginBottom: Spacing.sm,
                 textTransform: 'uppercase',
@@ -213,9 +215,9 @@ export default function BudgetDetailScreen() {
             </Text>
             <View
               style={{
-                backgroundColor: Colors.surface,
+                backgroundColor: colors.surface,
                 borderWidth: 1,
-                borderColor: Colors.border,
+                borderColor: colors.border,
                 borderRadius: Radius.md,
                 overflow: 'hidden',
               }}
@@ -257,6 +259,7 @@ function TransactionRow({
   isLast: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -266,7 +269,7 @@ function TransactionRow({
         paddingVertical: 14,
         paddingHorizontal: Spacing.md,
         borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: Colors.border,
+        borderBottomColor: colors.border,
       }}
     >
       <View
@@ -292,7 +295,7 @@ function TransactionRow({
         style={{
           fontFamily: Fonts.semibold,
           fontSize: 15,
-          color: Colors.textPrimary,
+          color: colors.textPrimary,
           fontVariant: ['tabular-nums'],
         }}
       >

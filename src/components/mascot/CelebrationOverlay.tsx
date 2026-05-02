@@ -3,11 +3,11 @@ import { View, Text, Pressable, Modal } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withDelay,
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { H2, Body } from '@/components/ui/Typography';
 import { LumaCat } from './LumaCat';
 import { haptic } from '@/utils/haptics';
@@ -19,6 +19,7 @@ interface CelebrationOverlayProps {
 }
 
 export function CelebrationOverlay({ visible, message, onDismiss }: CelebrationOverlayProps) {
+  const { colors } = useTheme();
   const scale = useSharedValue(0.8);
   const opacity = useSharedValue(0);
 
@@ -60,21 +61,21 @@ export function CelebrationOverlay({ visible, message, onDismiss }: CelebrationO
           style={[
             containerStyle,
             {
-              backgroundColor: Colors.surface,
+              backgroundColor: colors.surface,
               borderRadius: Radius.xl,
               padding: Spacing.xl,
               alignItems: 'center',
               gap: Spacing.md,
               maxWidth: 300,
               borderWidth: 1,
-              borderColor: `${Colors.primary}40`,
+              borderColor: `${colors.primary}40`,
             },
           ]}
         >
           <Text style={{ fontSize: 48 }}>🎊</Text>
           <LumaCat state="celebrating" size={72} />
           <H2 style={{ textAlign: 'center' }}>{message}</H2>
-          <Body color={Colors.textSecondary} style={{ textAlign: 'center', fontSize: 13 }}>
+          <Body color={colors.textSecondary} style={{ textAlign: 'center', fontSize: 13 }}>
             Tap anywhere to dismiss
           </Body>
         </Animated.View>

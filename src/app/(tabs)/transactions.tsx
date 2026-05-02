@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Caption } from '@/components/ui/Typography';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MultiMonthPickerModal } from '@/components/ui/MultiMonthPickerModal';
@@ -32,19 +33,8 @@ function currentMonthEntry() {
   return { month: now.getMonth() + 1, year: now.getFullYear() };
 }
 
-const pill = {
-  flexDirection: 'row' as const,
-  alignItems: 'center' as const,
-  backgroundColor: Colors.surface2,
-  borderRadius: Radius.full,
-  paddingHorizontal: 12,
-  paddingVertical: 7,
-  gap: 5,
-  borderWidth: 1,
-  borderColor: Colors.border,
-};
-
 export default function TransactionsScreen() {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [selectedMonths, setSelectedMonths] = useState([currentMonthEntry()]);
   const [monthPickerVisible, setMonthPickerVisible] = useState(false);
@@ -54,6 +44,18 @@ export default function TransactionsScreen() {
   const categories = useCategories();
   const editSheetRef = useRef<AddExpenseSheetRef>(null);
   const catSheetAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+
+  const pill = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.surface2,
+    borderRadius: Radius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: colors.border,
+  };
 
   const { sections, total } = useTransactions({
     months: selectedMonths,
@@ -94,54 +96,52 @@ export default function TransactionsScreen() {
 
   const ListHeader = (
     <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.lg }}>
-      <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: Colors.textPrimary, marginBottom: Spacing.md }}>
+      <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: colors.textPrimary, marginBottom: Spacing.md }}>
         Transactions
       </Text>
 
-      {/* Filter pills */}
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: Spacing.sm }}>
         <Pressable onPress={() => { haptic.light(); setMonthPickerVisible(true); }} style={pill}>
-          <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}>{monthLabel}</Text>
-          <Ionicons name="chevron-down" size={11} color={Colors.textSecondary} />
+          <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textPrimary }}>{monthLabel}</Text>
+          <Ionicons name="chevron-down" size={11} color={colors.textSecondary} />
         </Pressable>
 
         <Pressable
           onPress={openCatPicker}
-          style={[pill, selectedCategoryId ? { borderColor: Colors.primary } : {}]}
+          style={[pill, selectedCategoryId ? { borderColor: colors.primary } : {}]}
         >
           {selectedCat && <Text style={{ fontSize: 13 }}>{selectedCat.icon}</Text>}
-          <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: selectedCategoryId ? Colors.primary : Colors.textPrimary }}>
+          <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: selectedCategoryId ? colors.primary : colors.textPrimary }}>
             {selectedCat ? selectedCat.name : 'Category'}
           </Text>
-          <Ionicons name="chevron-down" size={11} color={selectedCategoryId ? Colors.primary : Colors.textSecondary} />
+          <Ionicons name="chevron-down" size={11} color={selectedCategoryId ? colors.primary : colors.textSecondary} />
         </Pressable>
       </View>
 
-      {/* Search bar */}
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: Colors.surface2,
+          backgroundColor: colors.surface2,
           borderRadius: Radius.sm,
           borderWidth: 1,
-          borderColor: Colors.border,
+          borderColor: colors.border,
           paddingHorizontal: Spacing.md,
           paddingVertical: 10,
           marginBottom: Spacing.sm,
         }}
       >
-        <Ionicons name="search-outline" size={16} color={Colors.textMuted} style={{ marginRight: 8 }} />
+        <Ionicons name="search-outline" size={16} color={colors.textMuted} style={{ marginRight: 8 }} />
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search"
-          placeholderTextColor={Colors.textMuted}
-          style={{ flex: 1, fontFamily: Fonts.regular, fontSize: 15, color: Colors.textPrimary }}
+          placeholderTextColor={colors.textMuted}
+          style={{ flex: 1, fontFamily: Fonts.regular, fontSize: 15, color: colors.textPrimary }}
         />
         {searchQuery.length > 0 && (
           <Pressable onPress={() => setSearchQuery('')}>
-            <Text style={{ color: Colors.textMuted, fontSize: 18, marginLeft: 8 }}>×</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 18, marginLeft: 8 }}>×</Text>
           </Pressable>
         )}
       </View>
@@ -149,7 +149,7 @@ export default function TransactionsScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -158,7 +158,7 @@ export default function TransactionsScreen() {
           <EmptyState headline={emptyStates.transactions.headline} subtext={emptyStates.transactions.subtext} />
         }
         renderSectionHeader={({ section: { title } }) => (
-          <View style={{ paddingHorizontal: Spacing.md, paddingVertical: 8, backgroundColor: Colors.background }}>
+          <View style={{ paddingHorizontal: Spacing.md, paddingVertical: 8, backgroundColor: colors.background }}>
             <Caption>{title}</Caption>
           </View>
         )}
@@ -181,7 +181,6 @@ export default function TransactionsScreen() {
         stickySectionHeadersEnabled
       />
 
-      {/* Category picker modal */}
       <Modal visible={catPickerVisible} transparent animationType="none" onRequestClose={closeCatPicker}>
         <Pressable
           onPress={closeCatPicker}
@@ -192,23 +191,23 @@ export default function TransactionsScreen() {
               style={{
                 transform: [{ translateY: catSheetAnim }],
                 height: SHEET_HEIGHT,
-                backgroundColor: Colors.surface,
+                backgroundColor: colors.surface,
                 borderTopLeftRadius: 20,
                 borderTopRightRadius: 20,
                 overflow: 'hidden',
               }}
             >
               <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
-                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border }} />
+                <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
               </View>
 
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border }}>
-                <Text style={{ fontFamily: Fonts.semibold, fontSize: 16, color: Colors.textPrimary }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <Text style={{ fontFamily: Fonts.semibold, fontSize: 16, color: colors.textPrimary }}>
                   Filter by category
                 </Text>
                 {selectedCategoryId && (
                   <Pressable onPress={() => { haptic.light(); setSelectedCategoryId(undefined); closeCatPicker(); }}>
-                    <Text style={{ fontFamily: Fonts.medium, fontSize: 14, color: Colors.primary }}>Clear</Text>
+                    <Text style={{ fontFamily: Fonts.medium, fontSize: 14, color: colors.primary }}>Clear</Text>
                   </Pressable>
                 )}
               </View>
@@ -235,17 +234,17 @@ export default function TransactionsScreen() {
                         paddingHorizontal: Spacing.md,
                         paddingVertical: 14,
                         borderBottomWidth: 1,
-                        borderBottomColor: Colors.border,
-                        backgroundColor: selected ? `${Colors.primary}14` : 'transparent',
+                        borderBottomColor: colors.border,
+                        backgroundColor: selected ? `${colors.primary}14` : 'transparent',
                       }}
                     >
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                         {!isAll && <Text style={{ fontSize: 18 }}>{item.icon}</Text>}
-                        <Text style={{ fontFamily: selected ? Fonts.semibold : Fonts.regular, fontSize: 15, color: selected ? Colors.primary : Colors.textPrimary }}>
+                        <Text style={{ fontFamily: selected ? Fonts.semibold : Fonts.regular, fontSize: 15, color: selected ? colors.primary : colors.textPrimary }}>
                           {item.name}
                         </Text>
                       </View>
-                      {selected && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
+                      {selected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
                     </Pressable>
                   );
                 }}

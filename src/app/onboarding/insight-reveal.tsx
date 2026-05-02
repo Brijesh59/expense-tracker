@@ -1,34 +1,38 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, Pressable } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withDelay,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { H1, Body, Caption } from '@/components/ui/Typography';
-import { Button } from '@/components/ui/Button';
 import { BudgetRing } from '@/components/ui/BudgetRing';
-import { useSettings } from '@/hooks/useSettings';
+import { Button } from '@/components/ui/Button';
+import { Caption, H1 } from '@/components/ui/Typography';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Storage } from '@/db/storage';
 import { useBudgets } from '@/hooks/useBudgets';
+import { useSettings } from '@/hooks/useSettings';
 import { useMonthStore } from '@/store/monthStore';
 import { formatAmount } from '@/utils/currency';
 import { haptic } from '@/utils/haptics';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-const NUDGE_COLORS: Record<string, string> = {
-  good: Colors.green,
-  caution: Colors.yellow,
-  warning: Colors.yellow,
-  over: Colors.red,
-  neutral: Colors.textSecondary,
-};
 
 export default function InsightRevealScreen() {
+  const { colors } = useTheme();
+
+  const NUDGE_COLORS: Record<string, string> = {
+    good: colors.green,
+    caution: colors.yellow,
+    warning: colors.yellow,
+    over: colors.red,
+    neutral: colors.textSecondary,
+  };
+
   const { nudgeText, nudgeType } = useLocalSearchParams<{ nudgeText: string; nudgeType: string }>();
   const { setSetting } = useSettings();
   const { month, year } = useMonthStore();
@@ -63,10 +67,10 @@ export default function InsightRevealScreen() {
     router.replace('/(tabs)');
   };
 
-  const accentColor = NUDGE_COLORS[nudgeType ?? 'neutral'] ?? Colors.primary;
+  const accentColor = NUDGE_COLORS[nudgeType ?? 'neutral'] ?? colors.primary;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg }}>
         <H1 style={{ marginBottom: Spacing.xl }}>You're off to a good start 👍</H1>
 
@@ -74,7 +78,7 @@ export default function InsightRevealScreen() {
         <Animated.View style={cardStyle}>
           <View
             style={{
-              backgroundColor: Colors.surface2,
+              backgroundColor: colors.surface2,
               borderRadius: Radius.lg,
               padding: Spacing.md,
               borderWidth: 1,
@@ -87,7 +91,7 @@ export default function InsightRevealScreen() {
           >
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: accentColor }} />
             <Text
-              style={{ fontFamily: Fonts.medium, fontSize: 15, color: Colors.textPrimary, flex: 1 }}
+              style={{ fontFamily: Fonts.medium, fontSize: 15, color: colors.textPrimary, flex: 1 }}
             >
               {nudgeText}
             </Text>
@@ -96,7 +100,7 @@ export default function InsightRevealScreen() {
 
         {/* Dashboard preview */}
         <Animated.View style={[dashboardStyle, { alignItems: 'center', gap: Spacing.md }]}>
-          <Caption color={Colors.textSecondary}>Here's your month so far</Caption>
+          <Caption color={colors.textSecondary}>Here's your month so far</Caption>
           <BudgetRing
             ratio={overallRatio}
             size={160}

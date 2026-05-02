@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ViewStyle } from 'react-native';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface BadgeProps {
   label: string;
@@ -8,12 +9,14 @@ interface BadgeProps {
   style?: ViewStyle;
 }
 
-export function Badge({ label, color = Colors.primary, style }: BadgeProps) {
+export function Badge({ label, color, style }: BadgeProps) {
+  const { colors } = useTheme();
+  const badgeColor = color ?? colors.primary;
   return (
     <View
       style={[
         {
-          backgroundColor: `${color}22`,
+          backgroundColor: `${badgeColor}22`,
           borderRadius: Radius.full,
           paddingHorizontal: Spacing.sm,
           paddingVertical: 3,
@@ -22,7 +25,7 @@ export function Badge({ label, color = Colors.primary, style }: BadgeProps) {
         style,
       ]}
     >
-      <Text style={{ fontFamily: Fonts.medium, fontSize: 12, color }}>
+      <Text style={{ fontFamily: Fonts.medium, fontSize: 12, color: badgeColor }}>
         {label}
       </Text>
     </View>

@@ -1,7 +1,8 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { haptic } from '@/utils/haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -16,6 +17,7 @@ interface CategoryChipProps {
 }
 
 export function CategoryChip({ icon, name, color, selected = false, onPress, size = 'md' }: CategoryChipProps) {
+  const { colors } = useTheme();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -37,8 +39,8 @@ export function CategoryChip({ icon, name, color, selected = false, onPress, siz
           paddingVertical: size === 'sm' ? 6 : 10,
           borderRadius: Radius.none,
           borderWidth: 1.5,
-          borderColor: selected ? color : Colors.border,
-          backgroundColor: selected ? `${color}18` : Colors.surface,
+          borderColor: selected ? color : colors.border,
+          backgroundColor: selected ? `${color}18` : colors.surface,
           marginRight: 8,
         },
       ]}
@@ -48,7 +50,7 @@ export function CategoryChip({ icon, name, color, selected = false, onPress, siz
         style={{
           fontFamily: selected ? Fonts.semibold : Fonts.regular,
           fontSize: size === 'sm' ? 12 : 14,
-          color: selected ? color : Colors.textSecondary,
+          color: selected ? color : colors.textSecondary,
         }}
       >
         {name}

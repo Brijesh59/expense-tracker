@@ -8,7 +8,8 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { BudgetWithSpend } from '@/hooks/useBudgets';
 import type { Category } from '@/db/types';
 
@@ -16,7 +17,7 @@ const CHART_MAX_HEIGHT = 200;
 const OVERFLOW_BUFFER = 48;
 const BAR_WIDTH = 64;
 const COLUMN_GAP = 14;
-const MIN_BAR_HEIGHT = 64; // ensures icon always fits
+const MIN_BAR_HEIGHT = 64;
 
 interface BudgetBarChartProps {
   budgets: BudgetWithSpend[];
@@ -33,8 +34,8 @@ interface BarColumnProps {
 }
 
 function BarColumn({ item, category, maxBudget, index, onPress }: BarColumnProps) {
+  const { colors } = useTheme();
   const rawBudgetBoxHeight = (item.budget.amount / maxBudget) * CHART_MAX_HEIGHT;
-  // Scale up bars that would be too small, preserving the spent/budget ratio inside
   const scale = rawBudgetBoxHeight < MIN_BAR_HEIGHT ? MIN_BAR_HEIGHT / rawBudgetBoxHeight : 1;
   const budgetBoxHeight = rawBudgetBoxHeight * scale;
   const rawFillHeight = (item.spent / maxBudget) * CHART_MAX_HEIGHT;
@@ -54,14 +55,13 @@ function BarColumn({ item, category, maxBudget, index, onPress }: BarColumnProps
   const isOver = item.ratio >= 1;
 
   const barColor = category.color;
-  const fillBg = barColor + '50'; // 31% opacity fill
+  const fillBg = barColor + '50';
 
   return (
     <Pressable
       onPress={onPress}
       style={{ alignItems: 'center', marginHorizontal: COLUMN_GAP / 2 }}
     >
-      {/* Chart area — bars grow from bottom upward */}
       <View
         style={{
           height: CHART_MAX_HEIGHT + OVERFLOW_BUFFER,
@@ -69,7 +69,6 @@ function BarColumn({ item, category, maxBudget, index, onPress }: BarColumnProps
           justifyContent: 'flex-end',
         }}
       >
-        {/* Dashed SVG budget cap box */}
         <View style={{ position: 'absolute', bottom: 0, left: 0, width: BAR_WIDTH, height: budgetBoxHeight }}>
           <Svg width={BAR_WIDTH} height={budgetBoxHeight}>
             <Rect
@@ -88,7 +87,6 @@ function BarColumn({ item, category, maxBudget, index, onPress }: BarColumnProps
           </Svg>
         </View>
 
-        {/* Animated fill bar */}
         <Animated.View
           style={[
             fillStyle,
@@ -110,16 +108,15 @@ function BarColumn({ item, category, maxBudget, index, onPress }: BarColumnProps
         </Animated.View>
       </View>
 
-      {/* Labels below chart */}
       <View style={{ marginTop: 8, alignItems: 'center', gap: 1 }}>
-        <Text style={{ fontFamily: Fonts.bold, fontSize: 14, color: Colors.textPrimary }}>
+        <Text style={{ fontFamily: Fonts.bold, fontSize: 14, color: colors.textPrimary }}>
           {Math.round(item.spent).toLocaleString('en-IN')}
         </Text>
         <Text
           style={{
             fontFamily: Fonts.medium,
             fontSize: 12,
-            color: isOver ? Colors.red : Colors.textSecondary,
+            color: isOver ? colors.red : colors.textSecondary,
           }}
         >
           {percentage}%

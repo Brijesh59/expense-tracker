@@ -10,7 +10,8 @@ import Animated, {
 import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { BodyMedium, Caption } from '@/components/ui/Typography';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { formatAmount } from '@/utils/currency';
 import { stagger } from '@/constants/animations';
 import type { BudgetWithSpend } from '@/hooks/useBudgets';
@@ -24,6 +25,7 @@ interface CategoryBudgetCardProps {
 }
 
 export function CategoryBudgetCard({ item, category, index, onPress }: CategoryBudgetCardProps) {
+  const { colors, isDark } = useTheme();
   const translateY = useSharedValue(20);
   const opacity = useSharedValue(0);
 
@@ -43,17 +45,20 @@ export function CategoryBudgetCard({ item, category, index, onPress }: CategoryB
   const leftLabel = isOver
     ? `Over by ${formatAmount(Math.abs(item.remaining))}`
     : `${formatAmount(item.remaining)} left`;
+  const cardSurface = isDark ? colors.surface : '#FBFDFE';
+  const cardBorder = isDark ? colors.border : 'rgba(60,110,145,0.12)';
+  const iconSurface = isDark ? `${category.color}25` : `${category.color}18`;
 
   return (
     <Animated.View style={animatedStyle}>
-      <Card onPress={onPress} style={{ marginBottom: 10 }}>
+      <Card onPress={onPress} style={{ marginBottom: 10, backgroundColor: cardSurface, borderColor: cardBorder }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
           <View
             style={{
               width: 40,
               height: 40,
               borderRadius: 12,
-              backgroundColor: `${category.color}25`,
+              backgroundColor: iconSurface,
               alignItems: 'center',
               justifyContent: 'center',
               marginRight: 12,
@@ -66,7 +71,7 @@ export function CategoryBudgetCard({ item, category, index, onPress }: CategoryB
             <Caption>{formatAmount(item.spent)} / {formatAmount(item.budget.amount)}</Caption>
           </View>
           <Caption
-            color={isOver ? Colors.red : Colors.textMuted}
+            color={isOver ? colors.red : colors.textMuted}
             style={{ fontVariant: ['tabular-nums'] }}
           >
             {leftLabel}

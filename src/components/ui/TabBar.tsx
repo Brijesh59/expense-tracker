@@ -10,7 +10,8 @@ import Animated, {
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Fonts } from '@/constants/theme';
+import { Fonts } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { haptic } from '@/utils/haptics';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -43,6 +44,7 @@ interface TabItemProps {
 }
 
 function TabItem({ routeName, isFocused, onPress }: TabItemProps) {
+  const { colors } = useTheme();
   const dotOpacity = useSharedValue(isFocused ? 1 : 0);
   const iconScale = useSharedValue(isFocused ? 1.08 : 1);
 
@@ -71,7 +73,7 @@ function TabItem({ routeName, isFocused, onPress }: TabItemProps) {
             ? (TAB_ICONS_ACTIVE[routeName] ?? 'ellipse')
             : (TAB_ICONS_INACTIVE[routeName] ?? 'ellipse-outline')}
           size={22}
-          color={isFocused ? Colors.textPrimary : Colors.textMuted}
+          color={isFocused ? colors.textPrimary : colors.textMuted}
         />
       </Animated.View>
 
@@ -79,7 +81,7 @@ function TabItem({ routeName, isFocused, onPress }: TabItemProps) {
         style={{
           fontFamily: isFocused ? Fonts.semibold : Fonts.regular,
           fontSize: 10,
-          color: isFocused ? Colors.textPrimary : Colors.textMuted,
+          color: isFocused ? colors.textPrimary : colors.textMuted,
           letterSpacing: 0.2,
         }}
         numberOfLines={1}
@@ -87,7 +89,6 @@ function TabItem({ routeName, isFocused, onPress }: TabItemProps) {
         {TAB_LABELS[routeName] ?? routeName}
       </Text>
 
-      {/* Yellow dot indicator */}
       <Animated.View
         style={[
           dotStyle,
@@ -95,7 +96,7 @@ function TabItem({ routeName, isFocused, onPress }: TabItemProps) {
             width: 4,
             height: 4,
             borderRadius: 2,
-            backgroundColor: Colors.primary,
+            backgroundColor: colors.primary,
           },
         ]}
       />
@@ -104,16 +105,18 @@ function TabItem({ routeName, isFocused, onPress }: TabItemProps) {
 }
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
+  const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   return (
     <BlurView
       intensity={80}
-      tint="dark"
+      tint={isDark ? 'dark' : 'light'}
       style={{
         flexDirection: 'row',
         borderTopWidth: 1,
-        borderTopColor: Colors.border,
+        borderTopColor: colors.border,
         paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
       }}
     >

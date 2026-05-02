@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
-import Svg, { Path, Circle } from 'react-native-svg';
-import { Colors, Fonts } from '@/constants/theme';
+import Svg, { Path } from 'react-native-svg';
+import { Fonts } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { formatAmount } from '@/utils/currency';
 import type { SpendByCategory } from '@/utils/analytics';
 import type { Category } from '@/db/types';
@@ -34,6 +35,7 @@ function slicePath(cx: number, cy: number, outerR: number, innerR: number, start
 }
 
 export function DonutChart({ data, categories, totalSpent, size = 220 }: DonutChartProps) {
+  const { colors, isDark } = useTheme();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const chartData = data
@@ -43,7 +45,7 @@ export function DonutChart({ data, categories, totalSpent, size = 220 }: DonutCh
       return {
         label: cat?.name ?? d.categoryId,
         value: d.total,
-        color: cat?.color ?? Colors.primary,
+        color: cat?.color ?? colors.primary,
         categoryId: d.categoryId,
       };
     });
@@ -83,23 +85,22 @@ export function DonutChart({ data, categories, totalSpent, size = 220 }: DonutCh
           ))}
         </Svg>
 
-        {/* Center label */}
         <View style={{ position: 'absolute', alignItems: 'center', pointerEvents: 'none' }}>
           {selected ? (
             <>
-              <Text style={{ fontFamily: Fonts.bold, fontSize: 18, color: Colors.textPrimary }}>
+              <Text style={{ fontFamily: Fonts.bold, fontSize: 18, color: colors.textPrimary }}>
                 {formatAmount(selected.value)}
               </Text>
-              <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: Colors.textSecondary, marginTop: 2 }}>
+              <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
                 {selected.label}
               </Text>
             </>
           ) : (
             <>
-              <Text style={{ fontFamily: Fonts.bold, fontSize: 20, color: Colors.textPrimary }}>
+              <Text style={{ fontFamily: Fonts.bold, fontSize: 20, color: colors.textPrimary }}>
                 {formatAmount(totalSpent)}
               </Text>
-              <Text style={{ fontFamily: Fonts.regular, fontSize: 11, color: Colors.textSecondary, marginTop: 2 }}>
+              <Text style={{ fontFamily: Fonts.regular, fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
                 total
               </Text>
             </>
@@ -107,7 +108,6 @@ export function DonutChart({ data, categories, totalSpent, size = 220 }: DonutCh
         </View>
       </View>
 
-      {/* Legend */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingHorizontal: 16, marginTop: 12 }}>
         {chartData.map(d => (
           <Pressable
@@ -120,13 +120,17 @@ export function DonutChart({ data, categories, totalSpent, size = 220 }: DonutCh
               paddingHorizontal: 10,
               paddingVertical: 5,
               borderRadius: 999,
-              backgroundColor: selectedId === d.categoryId ? `${d.color}25` : Colors.surface2,
+              backgroundColor: selectedId === d.categoryId
+                ? `${d.color}${isDark ? '25' : '18'}`
+                : isDark ? colors.surface2 : '#F2F6F9',
               borderWidth: 1,
-              borderColor: selectedId === d.categoryId ? d.color : Colors.border,
+              borderColor: selectedId === d.categoryId
+                ? d.color
+                : isDark ? colors.border : 'rgba(60,110,145,0.12)',
             }}
           >
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: d.color }} />
-            <Text style={{ fontFamily: Fonts.regular, fontSize: 11, color: Colors.textSecondary }}>
+            <Text style={{ fontFamily: Fonts.regular, fontSize: 11, color: colors.textSecondary }}>
               {d.label}
             </Text>
           </Pressable>

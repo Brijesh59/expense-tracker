@@ -9,12 +9,14 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { H1, Body, Caption } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { onboarding } from '@/constants/copy';
 
 export default function WelcomeScreen() {
+  const { colors } = useTheme();
   const mascotY = useSharedValue(30);
   const mascotOpacity = useSharedValue(0);
   const headlineY = useSharedValue(20);
@@ -59,7 +61,7 @@ export default function WelcomeScreen() {
   }));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View
         style={{
           flex: 1,
@@ -77,11 +79,11 @@ export default function WelcomeScreen() {
               width: 120,
               height: 120,
               borderRadius: 60,
-              backgroundColor: `${Colors.primary}20`,
+              backgroundColor: `${colors.primary}20`,
               alignItems: 'center',
               justifyContent: 'center',
               borderWidth: 2,
-              borderColor: `${Colors.primary}40`,
+              borderColor: `${colors.primary}40`,
             },
           ]}
         >
@@ -97,7 +99,7 @@ export default function WelcomeScreen() {
 
           <Animated.View style={subtextStyle}>
             <Body
-              color={Colors.textSecondary}
+              color={colors.textSecondary}
               style={{ textAlign: 'center', fontSize: 17 }}
             >
               {onboarding.welcome.subtext}

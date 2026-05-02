@@ -9,7 +9,7 @@ import Animated, {
   interpolateColor,
   useDerivedValue,
 } from 'react-native-reanimated';
-import { Colors } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface ProgressBarProps {
   ratio: number;
@@ -20,17 +20,22 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ ratio, delay = 0, height = 6, style, trackColor }: ProgressBarProps) {
+  const { colors } = useTheme();
   const progress = useSharedValue(0);
 
   useEffect(() => {
     progress.value = withDelay(delay, withTiming(Math.min(ratio, 1), { duration: 600, easing: Easing.out(Easing.cubic) }));
   }, [ratio, delay]);
 
+  const green = colors.green;
+  const primary = colors.primary;
+  const red = colors.red;
+
   const fillColor = useDerivedValue(() =>
     interpolateColor(
       progress.value,
       [0, 0.7, 0.85, 1],
-      [Colors.green, Colors.green, Colors.primary, Colors.red]
+      [green, green, primary, red]
     )
   );
 
@@ -45,7 +50,7 @@ export function ProgressBar({ ratio, delay = 0, height = 6, style, trackColor }:
         {
           height,
           borderRadius: 999,
-          backgroundColor: trackColor ?? Colors.border,
+          backgroundColor: trackColor ?? colors.border,
           overflow: 'hidden',
         },
         style,

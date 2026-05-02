@@ -1,5 +1,5 @@
 import React, { useState, useCallback, forwardRef, useRef, useImperativeHandle, useEffect } from 'react';
-import { View, Text, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
@@ -10,6 +10,7 @@ import Animated, {
   useAnimatedStyle,
   withRepeat,
   withTiming,
+  withDelay,
   cancelAnimation,
   Easing,
 } from 'react-native-reanimated';
@@ -18,7 +19,8 @@ import {
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/Button';
 import { H3, Caption } from '@/components/ui/Typography';
 import { useCategories } from '@/hooks/useCategories';
@@ -40,6 +42,85 @@ interface VoiceExpenseSheetProps {
 
 type VoiceState = 'idle' | 'listening' | 'parsing' | 'log_result' | 'budget_result' | 'query_result' | 'error' | 'unavailable';
 
+const AnimatedIonicon = Animated.createAnimatedComponent(Ionicons);
+
+function VoiceWaveBar({ color, delay, height }: { color: string; delay: number; height: number }) {
+  const scale = useSharedValue(0.35);
+
+  useEffect(() => {
+    scale.value = withDelay(
+      delay,
+      withRepeat(
+        withTiming(1, { duration: 460, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      )
+    );
+
+    return () => {
+      cancelAnimation(scale);
+    };
+  }, [delay, scale]);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scaleY: scale.value }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        style,
+        {
+          width: 4,
+          height,
+          borderRadius: 4,
+          backgroundColor: color,
+        },
+      ]}
+    />
+  );
+}
+
+function ThinkingSparkle({ color, surfaceColor }: { color: string; surfaceColor: string }) {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withRepeat(
+      withTiming(1, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+
+    return () => {
+      cancelAnimation(progress);
+    };
+  }, [progress]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.55 + progress.value * 0.45,
+    transform: [
+      { scale: 0.85 + progress.value * 0.2 },
+      { rotate: `${progress.value * 18}deg` },
+    ],
+  }));
+
+  return (
+    <View
+      style={{
+        width: 92,
+        height: 92,
+        borderRadius: 46,
+        backgroundColor: surfaceColor,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: Spacing.lg,
+      }}
+    >
+      <AnimatedIonicon name="sparkles" size={34} color={color} style={style} />
+    </View>
+  );
+}
+
 export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSheetProps>(
   ({ onExpenseSaved, onEditFirst }, ref) => {
     const sheetRef = useRef<BottomSheetModal>(null);
@@ -56,26 +137,8 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
     const [voiceResult, setVoiceResult] = useState<VoiceResult | null>(null);
     const [pendingItems, setPendingItems] = useState<LogItem[]>([]);
     const [pendingBudgets, setPendingBudgets] = useState<BudgetItem[]>([]);
+    const { colors, isDark } = useTheme();
     const [saving, setSaving] = useState(false);
-
-    const pulseScale = useSharedValue(1);
-    const pulseOpacity = useSharedValue(0);
-    const pulseStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: pulseScale.value }],
-      opacity: pulseOpacity.value,
-    }));
-
-    useEffect(() => {
-      if (voiceState === 'listening') {
-        pulseScale.value = withRepeat(withTiming(1.6, { duration: 1000, easing: Easing.out(Easing.ease) }), -1, true);
-        pulseOpacity.value = withRepeat(withTiming(0, { duration: 1000, easing: Easing.out(Easing.ease) }), -1, true);
-      } else {
-        cancelAnimation(pulseScale);
-        cancelAnimation(pulseOpacity);
-        pulseScale.value = withTiming(1, { duration: 200 });
-        pulseOpacity.value = withTiming(0, { duration: 200 });
-      }
-    }, [voiceState]);
 
     useSpeechRecognitionEvent('result', (event) => {
       const text = event.results[0]?.transcript ?? '';
@@ -273,14 +336,17 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
     const selectedCategory = singleItem?.categoryId
       ? categories.find(c => c.id === singleItem.categoryId)
       : null;
+    const speechSurface = isDark ? colors.surface : '#FBFDFE';
+    const speechCardSurface = isDark ? colors.surface2 : '#F2F6F9';
+    const speechBorder = isDark ? colors.border : 'rgba(60,110,145,0.12)';
 
     return (
       <BottomSheetModal
         ref={sheetRef}
         snapPoints={['65%']}
         enablePanDownToClose
-        backgroundStyle={{ backgroundColor: Colors.surface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
-        handleIndicatorStyle={{ backgroundColor: Colors.textMuted, width: 36 }}
+        backgroundStyle={{ backgroundColor: speechSurface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
+        handleIndicatorStyle={{ backgroundColor: colors.textMuted, width: 36 }}
         backdropComponent={(props) => (
           <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.6} />
         )}
@@ -290,7 +356,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
         }}
       >
         <BottomSheetView style={{ flex: 1, paddingHorizontal: Spacing.md, paddingTop: 8, paddingBottom: 48, alignItems: 'center' }}>
-          <H3 style={{ marginBottom: Spacing.xl, alignSelf: 'flex-start' }}>Voice assistant</H3>
+          <H3 style={{ marginBottom: Spacing.xl, alignSelf: 'stretch', textAlign: 'center' }}>Voice assistant</H3>
 
           {/* ── Idle ── */}
           {voiceState === 'idle' && (
@@ -299,19 +365,19 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                 onPress={startListening}
                 style={{
                   width: 72, height: 72, borderRadius: 36,
-                  backgroundColor: Colors.surface2,
-                  borderWidth: 1.5, borderColor: Colors.border,
+                  backgroundColor: speechCardSurface,
+                  borderWidth: 1.5, borderColor: speechBorder,
                   alignItems: 'center', justifyContent: 'center',
                   marginBottom: Spacing.lg,
                 }}
               >
-                <Ionicons name="mic-outline" size={30} color={Colors.textPrimary} />
+                <Ionicons name="mic-outline" size={30} color={colors.textPrimary} />
               </Pressable>
-              <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
+              <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
                 Log expenses, set budgets, or ask about your spending{'\n'}
-                <Text style={{ color: Colors.textMuted }}>"₹200 on coffee and ₹500 on groceries"</Text>
+                <Text style={{ color: colors.textMuted }}>"₹200 on coffee and ₹500 on groceries"</Text>
                 {'\n'}
-                <Text style={{ color: Colors.textMuted }}>"Set food budget to ₹5000"</Text>
+                <Text style={{ color: colors.textMuted }}>"Set food budget to ₹5000"</Text>
               </Text>
             </>
           )}
@@ -319,20 +385,34 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
           {/* ── Listening ── */}
           {voiceState === 'listening' && (
             <>
-              <View style={{ width: 96, height: 96, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.lg }}>
-                <Animated.View style={[pulseStyle, { position: 'absolute', width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.primary }]} />
-                <Pressable
-                  onPress={stopListening}
-                  style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Ionicons name="mic" size={30} color="#000" />
-                </Pressable>
-              </View>
-              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textMuted, marginBottom: 12 }}>
+              <Pressable
+                onPress={stopListening}
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  backgroundColor: colors.primary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: Spacing.lg,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 30 }}>
+                  {[16, 24, 30, 22, 14].map((height, index) => (
+                    <VoiceWaveBar
+                      key={`${height}-${index}`}
+                      color={colors.onPrimary}
+                      delay={index * 90}
+                      height={height}
+                    />
+                  ))}
+                </View>
+              </Pressable>
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textMuted, marginBottom: 12 }}>
                 Listening... tap to stop
               </Text>
               {transcript ? (
-                <Text style={{ fontFamily: Fonts.regular, fontSize: 15, color: Colors.textSecondary, textAlign: 'center', paddingHorizontal: 16 }}>
+                <Text style={{ fontFamily: Fonts.regular, fontSize: 15, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 16 }}>
                   {transcript}
                 </Text>
               ) : null}
@@ -342,8 +422,8 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
           {/* ── Parsing ── */}
           {voiceState === 'parsing' && (
             <>
-              <ActivityIndicator color={Colors.primary} size="large" style={{ marginBottom: Spacing.lg }} />
-              <Text style={{ fontFamily: Fonts.medium, fontSize: 14, color: Colors.textSecondary }}>
+              <ThinkingSparkle color={colors.primary} surfaceColor={speechCardSurface} />
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 14, color: colors.textSecondary }}>
                 Thinking...
               </Text>
               {transcript ? (
@@ -358,11 +438,11 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
               {pendingItems.length === 1 ? (
                 <>
                   {singleItem?.amount ? (
-                    <Text style={{ fontFamily: Fonts.bold, fontSize: 52, color: Colors.textPrimary, marginBottom: 6 }}>
+                    <Text style={{ fontFamily: Fonts.bold, fontSize: 52, color: colors.textPrimary, marginBottom: 6 }}>
                       ₹{Number.isInteger(singleItem.amount) ? singleItem.amount : singleItem.amount!.toFixed(2)}
                     </Text>
                   ) : (
-                    <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: Colors.red, marginBottom: 6 }}>
+                    <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: colors.red, marginBottom: 6 }}>
                       No amount detected
                     </Text>
                   )}
@@ -370,20 +450,20 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                   {selectedCategory ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <Text style={{ fontSize: 18 }}>{selectedCategory.icon}</Text>
-                      <Text style={{ fontFamily: Fonts.medium, fontSize: 16, color: Colors.textSecondary }}>
+                      <Text style={{ fontFamily: Fonts.medium, fontSize: 16, color: colors.textSecondary }}>
                         {selectedCategory.name}
                       </Text>
                     </View>
                   ) : (
-                    <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: Colors.textMuted, marginBottom: 4 }}>
+                    <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: colors.textMuted, marginBottom: 4 }}>
                       No category matched — will use Other
                     </Text>
                   )}
 
                   {singleItem?.merchant ? <Caption style={{ marginBottom: 2 }}>{singleItem.merchant}</Caption> : null}
-                  {singleItem?.notes ? <Caption style={{ marginBottom: 2, color: Colors.textMuted }}>{singleItem.notes}</Caption> : null}
+                  {singleItem?.notes ? <Caption style={{ marginBottom: 2, color: colors.textMuted }}>{singleItem.notes}</Caption> : null}
                   {singleItem?.paymentMethod ? (
-                    <Caption style={{ marginBottom: Spacing.xl, color: Colors.textMuted }}>{singleItem.paymentMethod}</Caption>
+                    <Caption style={{ marginBottom: Spacing.xl, color: colors.textMuted }}>{singleItem.paymentMethod}</Caption>
                   ) : (
                     <View style={{ marginBottom: Spacing.xl }} />
                   )}
@@ -412,27 +492,27 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                             alignItems: 'center',
                             paddingVertical: 10,
                             borderBottomWidth: 1,
-                            borderBottomColor: Colors.border,
+                            borderBottomColor: colors.border,
                           }}
                         >
-                          <Text style={{ fontFamily: Fonts.semibold, fontSize: 15, color: Colors.textPrimary, width: 72 }}>
+                          <Text style={{ fontFamily: Fonts.semibold, fontSize: 15, color: colors.textPrimary, width: 72 }}>
                             {item.amount ? `₹${item.amount}` : '—'}
                           </Text>
                           <View style={{ flex: 1 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                               {cat ? <Text style={{ fontSize: 13 }}>{cat.icon}</Text> : null}
-                              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textSecondary }}>
+                              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textSecondary }}>
                                 {cat?.name ?? 'Other'}
                               </Text>
                             </View>
                             {(item.merchant || item.notes) ? (
-                              <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: Colors.textMuted }}>
+                              <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: colors.textMuted }}>
                                 {[item.merchant, item.notes].filter(Boolean).join(' · ')}
                               </Text>
                             ) : null}
                           </View>
                           <Pressable onPress={() => removeItem(idx)} style={{ padding: 8 }}>
-                            <Ionicons name="close" size={16} color={Colors.textMuted} />
+                            <Ionicons name="close" size={16} color={colors.textMuted} />
                           </Pressable>
                         </View>
                       );
@@ -452,7 +532,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
               )}
 
               <Pressable onPress={resetState} style={{ marginTop: Spacing.md, padding: 4, alignSelf: 'center' }}>
-                <Caption style={{ color: Colors.textMuted }}>Try again</Caption>
+                <Caption style={{ color: colors.textMuted }}>Try again</Caption>
               </Pressable>
             </View>
           )}
@@ -479,25 +559,25 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                         alignItems: 'center',
                         paddingVertical: 12,
                         borderBottomWidth: 1,
-                        borderBottomColor: Colors.border,
+                        borderBottomColor: colors.border,
                       }}
                     >
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           {cat ? <Text style={{ fontSize: 16 }}>{cat.icon}</Text> : null}
-                          <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: Colors.textPrimary }}>
+                          <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: colors.textPrimary }}>
                             {cat?.name ?? 'Unknown category'}
                           </Text>
                         </View>
-                        <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: Colors.textMuted, marginTop: 2 }}>
+                        <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
                           {monthLabel}
                         </Text>
                       </View>
-                      <Text style={{ fontFamily: Fonts.bold, fontSize: 16, color: Colors.primary }}>
+                      <Text style={{ fontFamily: Fonts.bold, fontSize: 16, color: colors.primary }}>
                         {item.amount ? `₹${item.amount.toLocaleString('en-IN')}` : '—'}
                       </Text>
                       <Pressable onPress={() => removeBudget(idx)} style={{ padding: 8, marginLeft: 8 }}>
-                        <Ionicons name="close" size={16} color={Colors.textMuted} />
+                        <Ionicons name="close" size={16} color={colors.textMuted} />
                       </Pressable>
                     </View>
                   );
@@ -514,7 +594,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                 </Button>
               </View>
               <Pressable onPress={resetState} style={{ marginTop: Spacing.md, padding: 4, alignSelf: 'center' }}>
-                <Caption style={{ color: Colors.textMuted }}>Try again</Caption>
+                <Caption style={{ color: colors.textMuted }}>Try again</Caption>
               </Pressable>
             </View>
           )}
@@ -522,7 +602,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
           {/* ── Query result ── */}
           {voiceState === 'query_result' && voiceResult?.intent === 'query' && (
             <View style={{ width: '100%', alignItems: 'center' }}>
-              <Ionicons name="stats-chart" size={28} color={Colors.primary} style={{ marginBottom: Spacing.md }} />
+              <Ionicons name="stats-chart" size={28} color={colors.primary} style={{ marginBottom: Spacing.md }} />
 
               {transcript ? (
                 <Caption style={{ marginBottom: Spacing.md, textAlign: 'center', paddingHorizontal: 8 }}>
@@ -533,7 +613,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
               <Text style={{
                 fontFamily: Fonts.medium,
                 fontSize: 16,
-                color: Colors.textPrimary,
+                color: colors.textPrimary,
                 textAlign: 'center',
                 lineHeight: 24,
                 paddingHorizontal: 8,
@@ -549,8 +629,8 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
           {/* ── Unavailable (simulator) ── */}
           {voiceState === 'unavailable' && (
             <>
-              <Ionicons name="phone-portrait-outline" size={40} color={Colors.textMuted} style={{ marginBottom: Spacing.md }} />
-              <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: Colors.textSecondary, textAlign: 'center' }}>
+              <Ionicons name="phone-portrait-outline" size={40} color={colors.textMuted} style={{ marginBottom: Spacing.md }} />
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: colors.textSecondary, textAlign: 'center' }}>
                 Voice input requires a physical device.{'\n'}Speech recognition isn't available on the simulator.
               </Text>
             </>
@@ -559,8 +639,8 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
           {/* ── Error ── */}
           {voiceState === 'error' && (
             <>
-              <Ionicons name="mic-off-outline" size={40} color={Colors.textMuted} style={{ marginBottom: Spacing.md }} />
-              <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: Colors.textSecondary, marginBottom: Spacing.lg, textAlign: 'center' }}>
+              <Ionicons name="mic-off-outline" size={40} color={colors.textMuted} style={{ marginBottom: Spacing.md }} />
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: colors.textSecondary, marginBottom: Spacing.lg, textAlign: 'center' }}>
                 Something went wrong.{'\n'}Check mic permissions and try again.
               </Text>
               <Button onPress={resetState} fullWidth>Try again</Button>

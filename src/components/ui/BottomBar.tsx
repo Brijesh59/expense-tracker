@@ -3,7 +3,7 @@ import { View, Pressable } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { haptic } from '@/utils/haptics';
 
 interface BottomBarProps {
@@ -20,6 +20,7 @@ const pillItem = {
 };
 
 export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const isHome = !pathname.includes('transactions') && !pathname.includes('insights');
@@ -51,22 +52,22 @@ export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
             onPress={() => { haptic.medium(); onAddPress(); }}
             style={{
               width: 44, height: 44, borderRadius: 22,
-              backgroundColor: Colors.surface,
-              borderWidth: 1, borderColor: Colors.border,
+              backgroundColor: colors.surface,
+              borderWidth: 1, borderColor: colors.border,
               alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <Ionicons name="add" size={22} color={Colors.textPrimary} />
+            <Ionicons name="add" size={22} color={colors.textPrimary} />
           </Pressable>
 
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: Colors.surface,
+              backgroundColor: colors.surface,
               borderRadius: 22,
               borderWidth: 1,
-              borderColor: Colors.border,
+              borderColor: colors.border,
               height: 44,
               paddingHorizontal: 6,
               gap: 2,
@@ -76,7 +77,7 @@ export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
               <Ionicons
                 name={isHome ? 'easel' : 'easel-outline'}
                 size={19}
-                color={isHome ? Colors.textPrimary : Colors.textMuted}
+                color={isHome ? colors.textPrimary : colors.textMuted}
               />
             </Pressable>
 
@@ -84,7 +85,7 @@ export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
               <Ionicons
                 name={isTransactions ? 'receipt' : 'receipt-outline'}
                 size={19}
-                color={isTransactions ? Colors.textPrimary : Colors.textMuted}
+                color={isTransactions ? colors.textPrimary : colors.textMuted}
               />
             </Pressable>
 
@@ -92,7 +93,7 @@ export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
               <Ionicons
                 name={isInsights ? 'trending-up' : 'trending-up-outline'}
                 size={19}
-                color={isInsights ? Colors.textPrimary : Colors.textMuted}
+                color={isInsights ? colors.textPrimary : colors.textMuted}
               />
             </Pressable>
           </View>
@@ -103,11 +104,11 @@ export function BottomBar({ onAddPress, onMicPress }: BottomBarProps) {
           onPress={() => { haptic.medium(); onMicPress(); }}
           style={{
             width: 56, height: 56, borderRadius: 28,
-            backgroundColor: Colors.primary,
+            backgroundColor: colors.primary,
             alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <Ionicons name="mic" size={24} color="#000" />
+          <Ionicons name="mic" size={24} color={colors.onPrimary} />
         </Pressable>
       </View>
     </View>

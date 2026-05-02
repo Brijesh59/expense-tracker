@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { H1, Body, Caption } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { onboarding } from '@/constants/copy';
@@ -13,6 +14,7 @@ import { haptic } from '@/utils/haptics';
 import { getCurrentMonth } from '@/utils/dates';
 
 export default function FirstBudgetScreen() {
+  const { colors } = useTheme();
   const categories = useCategories();
   const addBudget = useLumaStore(s => s.addBudget);
   const setSetting = useLumaStore(s => s.setSetting);
@@ -50,13 +52,13 @@ export default function FirstBudgetScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
         <H1 style={{ marginBottom: Spacing.sm }}>{onboarding.firstBudget.headline}</H1>
-        <Body color={Colors.textSecondary} style={{ marginBottom: Spacing.xl }}>
+        <Body color={colors.textSecondary} style={{ marginBottom: Spacing.xl }}>
           {onboarding.firstBudget.subtext}
         </Body>
 
@@ -79,8 +81,8 @@ export default function FirstBudgetScreen() {
                 paddingVertical: 10,
                 borderRadius: Radius.full,
                 borderWidth: 1.5,
-                borderColor: selectedCategoryId === cat.id ? cat.color : Colors.border,
-                backgroundColor: selectedCategoryId === cat.id ? `${cat.color}20` : Colors.surface,
+                borderColor: selectedCategoryId === cat.id ? cat.color : colors.border,
+                backgroundColor: selectedCategoryId === cat.id ? `${cat.color}20` : colors.surface,
                 marginRight: 8,
               }}
             >
@@ -89,7 +91,7 @@ export default function FirstBudgetScreen() {
                 style={{
                   fontFamily: selectedCategoryId === cat.id ? Fonts.semibold : Fonts.regular,
                   fontSize: 14,
-                  color: selectedCategoryId === cat.id ? cat.color : Colors.textSecondary,
+                  color: selectedCategoryId === cat.id ? cat.color : colors.textSecondary,
                 }}
               >
                 {cat.name}
@@ -103,27 +105,27 @@ export default function FirstBudgetScreen() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: Colors.surface,
+            backgroundColor: colors.surface,
             borderRadius: Radius.lg,
             paddingHorizontal: Spacing.md,
             paddingVertical: 16,
             borderWidth: 1,
-            borderColor: Colors.border,
+            borderColor: colors.border,
             marginBottom: Spacing.sm,
           }}
         >
-          <Text style={{ fontFamily: Fonts.bold, fontSize: 32, color: Colors.textMuted, marginRight: 4 }}>₹</Text>
+          <Text style={{ fontFamily: Fonts.bold, fontSize: 32, color: colors.textMuted, marginRight: 4 }}>₹</Text>
           <TextInput
             value={amount}
             onChangeText={setAmount}
             placeholder={onboarding.firstBudget.placeholder}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             keyboardType="decimal-pad"
             autoFocus
             style={{
               fontFamily: Fonts.bold,
               fontSize: 32,
-              color: Colors.textPrimary,
+              color: colors.textPrimary,
               flex: 1,
               fontVariant: ['tabular-nums'],
             }}
@@ -143,7 +145,7 @@ export default function FirstBudgetScreen() {
         </Button>
 
         <Pressable onPress={handleSkip} style={{ alignItems: 'center', paddingVertical: Spacing.md }}>
-          <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: Colors.textMuted }}>
+          <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: colors.textMuted }}>
             Skip for now
           </Text>
         </Pressable>

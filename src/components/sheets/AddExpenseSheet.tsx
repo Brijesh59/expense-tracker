@@ -11,7 +11,8 @@ import {
   BottomSheetScrollView,
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/Button';
 import { H3, Caption } from '@/components/ui/Typography';
 import { CategoryChip } from '@/components/ui/CategoryChip';
@@ -37,6 +38,7 @@ const PAYMENT_METHODS = ['Cash', 'Card', 'UPI'];
 
 export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetProps>(
   ({ onExpenseSaved }, ref) => {
+    const { colors } = useTheme();
     const sheetRef = useRef<BottomSheetModal>(null);
     const categories = useCategories();
     const addTransaction = useLumaStore(s => s.addTransaction);
@@ -116,7 +118,6 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
             notes: notes.trim(),
           });
           sheetRef.current?.dismiss();
-          // No nudge on edit — just dismiss
           onExpenseSaved?.({ text: '', type: 'neutral' });
         } else {
           const now = Date.now();
@@ -190,8 +191,8 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
         ref={sheetRef}
         snapPoints={['85%']}
         enablePanDownToClose
-        backgroundStyle={{ backgroundColor: Colors.surface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
-        handleIndicatorStyle={{ backgroundColor: Colors.textMuted, width: 36 }}
+        backgroundStyle={{ backgroundColor: colors.surface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
+        handleIndicatorStyle={{ backgroundColor: colors.textMuted, width: 36 }}
         backdropComponent={(props) => (
           <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.6} />
         )}
@@ -213,22 +214,22 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
                 alignItems: 'center',
                 marginBottom: Spacing.lg,
                 borderBottomWidth: 1,
-                borderBottomColor: Colors.border,
+                borderBottomColor: colors.border,
                 paddingBottom: Spacing.md,
               }}
             >
-              <Text style={{ fontFamily: Fonts.bold, fontSize: 48, color: Colors.textMuted, marginRight: 4 }}>₹</Text>
+              <Text style={{ fontFamily: Fonts.bold, fontSize: 48, color: colors.textMuted, marginRight: 4 }}>₹</Text>
               <TextInput
                 value={amount}
                 onChangeText={setAmount}
                 placeholder="0"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 keyboardType="decimal-pad"
                 autoFocus
                 style={{
                   fontFamily: Fonts.bold,
                   fontSize: 48,
-                  color: Colors.textPrimary,
+                  color: colors.textPrimary,
                   flex: 1,
                   fontVariant: ['tabular-nums'],
                 }}
@@ -256,10 +257,10 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
 
             <View
               style={{
-                backgroundColor: Colors.surface2,
+                backgroundColor: colors.input,
                 borderRadius: Radius.sm,
                 borderWidth: 1,
-                borderColor: Colors.border,
+                borderColor: colors.inputBorder,
                 paddingHorizontal: Spacing.md,
                 paddingVertical: 12,
                 marginBottom: Spacing.md,
@@ -269,9 +270,9 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
                 value={merchant}
                 onChangeText={setMerchant}
                 placeholder="Where did you spend? (optional)"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 returnKeyType="done"
-                style={{ fontFamily: Fonts.regular, fontSize: 15, color: Colors.textPrimary }}
+                style={{ fontFamily: Fonts.regular, fontSize: 15, color: colors.textPrimary }}
               />
             </View>
 
@@ -286,15 +287,15 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
                     paddingVertical: 8,
                     borderRadius: Radius.none,
                     borderWidth: 1.5,
-                    borderColor: paymentMethod === pm ? Colors.primary : Colors.border,
-                    backgroundColor: paymentMethod === pm ? `${Colors.primary}18` : 'transparent',
+                    borderColor: paymentMethod === pm ? colors.primary : colors.border,
+                    backgroundColor: paymentMethod === pm ? `${colors.primary}18` : 'transparent',
                   }}
                 >
                   <Text
                     style={{
                       fontFamily: paymentMethod === pm ? Fonts.semibold : Fonts.regular,
                       fontSize: 13,
-                      color: paymentMethod === pm ? Colors.primary : Colors.textSecondary,
+                      color: paymentMethod === pm ? colors.primary : colors.textSecondary,
                     }}
                   >
                     {pm}
@@ -305,10 +306,10 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
 
             <View
               style={{
-                backgroundColor: Colors.surface2,
+                backgroundColor: colors.input,
                 borderRadius: Radius.sm,
                 borderWidth: 1,
-                borderColor: Colors.border,
+                borderColor: colors.inputBorder,
                 paddingHorizontal: Spacing.md,
                 paddingVertical: 12,
                 marginBottom: Spacing.xl,
@@ -318,9 +319,9 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Add a note (optional)"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 returnKeyType="done"
-                style={{ fontFamily: Fonts.regular, fontSize: 15, color: Colors.textPrimary }}
+                style={{ fontFamily: Fonts.regular, fontSize: 15, color: colors.textPrimary }}
               />
             </View>
 
@@ -343,7 +344,7 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
                 <Text style={{
                   fontFamily: Fonts.regular,
                   fontSize: 14,
-                  color: deleting ? Colors.textMuted : Colors.red,
+                  color: deleting ? colors.textMuted : colors.red,
                 }}>
                   {deleting ? 'Deleting...' : 'Delete expense'}
                 </Text>

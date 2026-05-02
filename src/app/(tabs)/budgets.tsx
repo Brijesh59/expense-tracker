@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from 'react-native';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { H2, Caption } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -19,6 +20,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { emptyStates } from '@/constants/copy';
 
 export default function BudgetsScreen() {
+  const { colors, isDark } = useTheme();
   const { month, year, setMonth } = useMonthStore();
   const [pickerVisible, setPickerVisible] = useState(false);
   const { budgetsWithSpend } = useBudgets({ month, year });
@@ -27,26 +29,38 @@ export default function BudgetsScreen() {
 
   const existingCategoryIds = budgetsWithSpend.map(b => b.categoryId);
   const hasBudgets = budgetsWithSpend.length > 0;
+  const pillStyle = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    alignSelf: 'flex-start' as const,
+    backgroundColor: isDark ? colors.surface2 : '#F2F6F9',
+    borderRadius: Radius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: isDark ? colors.border : 'rgba(60,110,145,0.12)',
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Large header */}
         <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.lg, paddingBottom: Spacing.lg }}>
-          <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: Colors.textPrimary, marginBottom: Spacing.md }}>
+          <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: colors.textPrimary, marginBottom: Spacing.md }}>
             Budgets
           </Text>
           <Pressable
             onPress={() => { haptic.light(); setPickerVisible(true); }}
-            style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: Colors.surface2, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 7, gap: 5, borderWidth: 1, borderColor: Colors.border }}
+            style={pillStyle}
           >
-            <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}>
+            <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textPrimary }}>
               {getMonthLabel(month, year)}
             </Text>
-            <Ionicons name="chevron-down" size={11} color={Colors.textSecondary} />
+            <Ionicons name="chevron-down" size={11} color={colors.textSecondary} />
           </Pressable>
         </View>
 

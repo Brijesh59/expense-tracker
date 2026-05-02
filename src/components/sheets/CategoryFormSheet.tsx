@@ -5,7 +5,8 @@ import {
   BottomSheetScrollView,
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { H3, Caption } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { useLumaStore } from '@/db/store';
@@ -36,6 +37,7 @@ const COLOR_OPTIONS = [
 
 export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSheetProps>(
   ({ onSaved }, ref) => {
+    const { colors } = useTheme();
     const sheetRef = useRef<BottomSheetModal>(null);
     const addCategory = useLumaStore(s => s.addCategory);
     const updateCategory = useLumaStore(s => s.updateCategory);
@@ -43,7 +45,7 @@ export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSh
 
     const [name, setName] = useState('');
     const [icon, setIcon] = useState('📦');
-    const [color, setColor] = useState(Colors.primary);
+    const [color, setColor] = useState(colors.primary);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -59,7 +61,7 @@ export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSh
           setEditingCategory(null);
           setName('');
           setIcon('📦');
-          setColor(Colors.primary);
+          setColor(colors.primary);
         }
         sheetRef.current?.present();
       },
@@ -105,8 +107,8 @@ export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSh
         ref={sheetRef}
         snapPoints={['85%']}
         enablePanDownToClose
-        backgroundStyle={{ backgroundColor: Colors.surface }}
-        handleIndicatorStyle={{ backgroundColor: Colors.border, width: 40 }}
+        backgroundStyle={{ backgroundColor: colors.surface }}
+        handleIndicatorStyle={{ backgroundColor: colors.border, width: 40 }}
         backdropComponent={(props) => (
           <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.6} />
         )}
@@ -121,7 +123,6 @@ export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSh
             {editingCategory ? 'Edit category' : 'New category'}
           </H3>
 
-          {/* Preview */}
           <View style={{ alignItems: 'center', marginBottom: Spacing.lg }}>
             <View style={{
               width: 64,
@@ -138,11 +139,12 @@ export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSh
             <Caption style={{ marginTop: 6 }}>{name || 'Category name'}</Caption>
           </View>
 
-          {/* Name */}
           <Caption style={{ marginBottom: 8 }}>Name</Caption>
           <View style={{
-            backgroundColor: Colors.surface2,
+            backgroundColor: colors.input,
             borderRadius: Radius.md,
+            borderWidth: 1,
+            borderColor: colors.inputBorder,
             paddingHorizontal: Spacing.md,
             paddingVertical: 12,
             marginBottom: Spacing.lg,
@@ -151,13 +153,12 @@ export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSh
               value={name}
               onChangeText={setName}
               placeholder="e.g. Dining, Gym, Pets..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               autoFocus
-              style={{ fontFamily: Fonts.regular, fontSize: 15, color: Colors.textPrimary }}
+              style={{ fontFamily: Fonts.regular, fontSize: 15, color: colors.textPrimary }}
             />
           </View>
 
-          {/* Icon picker */}
           <Caption style={{ marginBottom: 10 }}>Icon</Caption>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: Spacing.lg }}>
             {EMOJI_OPTIONS.map(e => (
@@ -170,7 +171,7 @@ export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSh
                   borderRadius: 12,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: icon === e ? `${color}25` : Colors.surface2,
+                  backgroundColor: icon === e ? `${color}25` : colors.surface2,
                   borderWidth: 1.5,
                   borderColor: icon === e ? color : 'transparent',
                 }}
@@ -180,7 +181,6 @@ export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSh
             ))}
           </View>
 
-          {/* Color picker */}
           <Caption style={{ marginBottom: 10 }}>Color</Caption>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: Spacing.xl }}>
             {COLOR_OPTIONS.map(c => (
@@ -195,7 +195,7 @@ export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSh
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderWidth: color === c ? 3 : 0,
-                  borderColor: Colors.textPrimary,
+                  borderColor: colors.textPrimary,
                   opacity: color === c ? 1 : 0.7,
                 }}
               >
@@ -225,7 +225,7 @@ export const CategoryFormSheet = forwardRef<CategoryFormSheetRef, CategoryFormSh
               <Text style={{
                 fontFamily: Fonts.regular,
                 fontSize: 14,
-                color: deleting ? Colors.textMuted : Colors.red,
+                color: deleting ? colors.textMuted : colors.red,
               }}>
                 {deleting ? 'Deleting...' : 'Delete category'}
               </Text>

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, Text, View, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { haptic } from '@/utils/haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -32,36 +33,37 @@ export function Button({
   textStyle,
   fullWidth = false,
 }: ButtonProps) {
+  const { colors } = useTheme();
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const shadowOpacity = useSharedValue(1);
 
   const bgColor: Record<typeof variant, string> = {
-    primary: Colors.primary,
+    primary: colors.primary,
     secondary: 'transparent',
     ghost: 'transparent',
     danger: '#1A0808',
   };
 
   const textColor: Record<typeof variant, string> = {
-    primary: '#000000',  // Black on yellow for high contrast
-    secondary: Colors.textPrimary,
-    ghost: Colors.textSecondary,
-    danger: Colors.red,
+    primary: colors.onPrimary,
+    secondary: colors.textPrimary,
+    ghost: colors.textSecondary,
+    danger: colors.red,
   };
 
   const shadowColor: Record<typeof variant, string> = {
-    primary: Colors.primaryShadow,
-    secondary: 'rgba(255,255,255,0.5)',
+    primary: colors.primaryShadow,
+    secondary: `${colors.textPrimary}50`,
     ghost: 'transparent',
     danger: '#550000',
   };
 
   const borderStyle: Record<typeof variant, object> = {
     primary: {},
-    secondary: { borderWidth: 1.5, borderColor: Colors.textPrimary },
+    secondary: { borderWidth: 1.5, borderColor: colors.textPrimary },
     ghost: {},
-    danger: { borderWidth: 1, borderColor: Colors.red },
+    danger: { borderWidth: 1, borderColor: colors.red },
   };
 
   const paddingY: Record<typeof size, number> = { sm: 10, md: 14, lg: 18 };

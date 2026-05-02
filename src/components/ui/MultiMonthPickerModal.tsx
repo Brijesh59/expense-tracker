@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { haptic } from '@/utils/haptics';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -53,6 +54,7 @@ export function MultiMonthPickerModal({
   onClear,
   onClose,
 }: MultiMonthPickerModalProps) {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
 
@@ -78,18 +80,16 @@ export function MultiMonthPickerModal({
             style={{
               transform: [{ translateY }],
               height: SHEET_HEIGHT,
-              backgroundColor: Colors.surface,
+              backgroundColor: colors.surface,
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
               overflow: 'hidden',
             }}
           >
-            {/* Handle */}
             <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
-              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border }} />
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
             </View>
 
-            {/* Title row */}
             <View
               style={{
                 flexDirection: 'row',
@@ -98,15 +98,15 @@ export function MultiMonthPickerModal({
                 paddingHorizontal: Spacing.md,
                 paddingBottom: Spacing.sm,
                 borderBottomWidth: 1,
-                borderBottomColor: Colors.border,
+                borderBottomColor: colors.border,
               }}
             >
-              <Text style={{ fontFamily: Fonts.semibold, fontSize: 16, color: Colors.textPrimary }}>
+              <Text style={{ fontFamily: Fonts.semibold, fontSize: 16, color: colors.textPrimary }}>
                 Filter by month
               </Text>
               {selectedMonths.length > 0 && (
                 <Pressable onPress={() => { haptic.light(); onClear(); }}>
-                  <Text style={{ fontFamily: Fonts.medium, fontSize: 14, color: Colors.primary }}>
+                  <Text style={{ fontFamily: Fonts.medium, fontSize: 14, color: colors.primary }}>
                     Clear
                   </Text>
                 </Pressable>
@@ -130,21 +130,21 @@ export function MultiMonthPickerModal({
                       paddingHorizontal: Spacing.md,
                       paddingVertical: 14,
                       borderBottomWidth: 1,
-                      borderBottomColor: Colors.border,
-                      backgroundColor: selected ? `${Colors.primary}14` : 'transparent',
+                      borderBottomColor: colors.border,
+                      backgroundColor: selected ? `${colors.primary}14` : 'transparent',
                     }}
                   >
                     <Text
                       style={{
                         fontFamily: selected ? Fonts.semibold : Fonts.regular,
                         fontSize: 15,
-                        color: selected ? Colors.primary : Colors.textPrimary,
+                        color: selected ? colors.primary : colors.textPrimary,
                       }}
                     >
                       {item.label}
                     </Text>
                     {selected && (
-                      <Ionicons name="checkmark" size={18} color={Colors.primary} />
+                      <Ionicons name="checkmark" size={18} color={colors.primary} />
                     )}
                   </Pressable>
                 );

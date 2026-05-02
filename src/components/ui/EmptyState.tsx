@@ -2,7 +2,8 @@ import React from 'react';
 import { View } from 'react-native';
 import { H3, Body } from './Typography';
 import { Button } from './Button';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface EmptyStateProps {
   headline: string;
@@ -13,6 +14,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ headline, subtext, ctaLabel, onCTA, icon = '🐱' }: EmptyStateProps) {
+  const { colors } = useTheme();
   return (
     <View
       style={{
@@ -29,7 +31,7 @@ export function EmptyState({ headline, subtext, ctaLabel, onCTA, icon = '🐱' }
           width: 80,
           height: 80,
           borderRadius: 40,
-          backgroundColor: Colors.surface2,
+          backgroundColor: colors.surface2,
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: Spacing.sm,
@@ -38,7 +40,7 @@ export function EmptyState({ headline, subtext, ctaLabel, onCTA, icon = '🐱' }
         <Body style={{ fontSize: 36 }}>{icon}</Body>
       </View>
       <H3 style={{ textAlign: 'center' }}>{headline}</H3>
-      <Body color={Colors.textSecondary} style={{ textAlign: 'center' }}>
+      <Body color={colors.textSecondary} style={{ textAlign: 'center' }}>
         {subtext}
       </Body>
       {ctaLabel && onCTA && (

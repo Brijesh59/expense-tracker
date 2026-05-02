@@ -4,7 +4,8 @@ import Svg, { Circle } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Fonts, Radius } from '@/constants/theme';
+import { Spacing, Fonts, Radius } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { MonthPickerModal } from '@/components/ui/MonthPickerModal';
 import { BudgetBarChart } from '@/components/overview/BudgetBarChart';
@@ -22,6 +23,7 @@ import { emptyStates } from '@/constants/copy';
 import { useAddExpense } from './_layout';
 
 export default function OverviewScreen() {
+  const { colors } = useTheme();
   const { month, year, setMonth } = useMonthStore();
   const { budgetsWithSpend, totalBudget, totalSpent } = useBudgets({ month, year });
   const categories = useCategories();
@@ -63,10 +65,10 @@ export default function OverviewScreen() {
                 paddingBottom: 6,
               }}
             >
-              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textSecondary }}>
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textSecondary }}>
                 {section.title}
               </Text>
-              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textSecondary }}>
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textSecondary }}>
                 {formatAmount(sectionTotal)}
               </Text>
             </View>
@@ -86,7 +88,7 @@ export default function OverviewScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
@@ -111,7 +113,7 @@ export default function OverviewScreen() {
             const circumference = 2 * Math.PI * RADIUS;
             const progress = totalBudget > 0 ? Math.min(totalSpent / totalBudget, 1) : 0;
             const dashOffset = circumference * (1 - progress);
-            const ringColor = totalSpent >= totalBudget ? Colors.red : Colors.primary;
+            const ringColor = totalSpent >= totalBudget ? colors.red : colors.primary;
             return (
               <View style={{ width: RING, height: RING }}>
                 <Svg width={RING} height={RING} style={{ position: 'absolute' }}>
@@ -119,7 +121,7 @@ export default function OverviewScreen() {
                     <Circle
                       cx={CENTER} cy={CENTER} r={RADIUS}
                       fill="none"
-                      stroke={Colors.border}
+                      stroke={colors.border}
                       strokeWidth={STROKE}
                     />
                   )}
@@ -144,12 +146,12 @@ export default function OverviewScreen() {
                     top: 4, left: 4,
                     width: 36, height: 36,
                     borderRadius: 18,
-                    backgroundColor: Colors.surface,
+                    backgroundColor: colors.surface,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Ionicons name="wallet-outline" size={18} color={Colors.textSecondary} />
+                  <Ionicons name="wallet-outline" size={18} color={colors.textSecondary} />
                 </Pressable>
               </View>
             );
@@ -164,7 +166,7 @@ export default function OverviewScreen() {
                 <Circle
                   cx={22} cy={22} r={19}
                   fill="none"
-                  stroke={Colors.background}
+                  stroke={colors.background}
                   strokeWidth={2.5}
                 />
               </Svg>
@@ -175,12 +177,12 @@ export default function OverviewScreen() {
                   top: 4, left: 4,
                   width: 36, height: 36,
                   borderRadius: 18,
-                  backgroundColor: Colors.surface,
+                  backgroundColor: colors.surface,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Ionicons name={icon as any} size={18} color={Colors.textSecondary} />
+                <Ionicons name={icon as any} size={18} color={colors.textSecondary} />
               </Pressable>
             </View>
           ))}
@@ -193,7 +195,7 @@ export default function OverviewScreen() {
               style={{
                 fontSize: 28,
                 fontFamily: Fonts.medium,
-                color: Colors.textSecondary,
+                color: colors.textSecondary,
                 marginTop: 14,
                 marginRight: 3,
               }}
@@ -204,7 +206,7 @@ export default function OverviewScreen() {
               style={{
                 fontSize: 72,
                 fontFamily: Fonts.bold,
-                color: Colors.textPrimary,
+                color: colors.textPrimary,
                 lineHeight: 80,
                 letterSpacing: -2,
               }}
@@ -218,7 +220,7 @@ export default function OverviewScreen() {
             <Pressable
               onPress={() => setPickerVisible(true)}
               style={{
-                backgroundColor: Colors.surface2,
+                backgroundColor: colors.surface2,
                 borderRadius: Radius.full,
                 paddingHorizontal: 12,
                 paddingVertical: 5,
@@ -228,11 +230,11 @@ export default function OverviewScreen() {
               }}
             >
               <Text
-                style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}
+                style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textPrimary }}
               >
                 {getMonthLabel(month, year)}
               </Text>
-              <Ionicons name="chevron-down" size={11} color={Colors.textSecondary} />
+              <Ionicons name="chevron-down" size={11} color={colors.textSecondary} />
             </Pressable>
 
             {totalBudget > 0 && (
@@ -240,7 +242,7 @@ export default function OverviewScreen() {
                 style={{
                   fontFamily: Fonts.regular,
                   fontSize: 13,
-                  color: remaining >= 0 ? Colors.textSecondary : Colors.red,
+                  color: remaining >= 0 ? colors.textSecondary : colors.red,
                 }}
               >
                 {remaining >= 0

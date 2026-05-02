@@ -6,7 +6,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
 } from 'react-native-reanimated';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { H1, Body } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { onboarding } from '@/constants/copy';
@@ -14,6 +15,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { haptic } from '@/utils/haptics';
 
 export default function IntentScreen() {
+  const { colors } = useTheme();
   const [selected, setSelected] = useState<string | null>(null);
   const { setSetting } = useSettings();
 
@@ -25,7 +27,7 @@ export default function IntentScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View
         style={{
           flex: 1,
@@ -34,7 +36,7 @@ export default function IntentScreen() {
         }}
       >
         <H1 style={{ marginBottom: Spacing.sm }}>{onboarding.intent.headline}</H1>
-        <Body color={Colors.textSecondary} style={{ marginBottom: Spacing.xl }}>
+        <Body color={colors.textSecondary} style={{ marginBottom: Spacing.xl }}>
           No pressure — just helps us understand what matters to you.
         </Body>
 
@@ -53,15 +55,15 @@ export default function IntentScreen() {
                   paddingHorizontal: Spacing.md,
                   borderRadius: Radius.lg,
                   borderWidth: 1.5,
-                  borderColor: isSelected ? Colors.primary : Colors.border,
-                  backgroundColor: isSelected ? `${Colors.primary}15` : Colors.surface,
+                  borderColor: isSelected ? colors.primary : colors.border,
+                  backgroundColor: isSelected ? `${colors.primary}15` : colors.surface,
                 }}
               >
                 <Text
                   style={{
                     fontFamily: isSelected ? Fonts.semibold : Fonts.regular,
                     fontSize: 16,
-                    color: isSelected ? Colors.primary : Colors.textPrimary,
+                    color: isSelected ? colors.primary : colors.textPrimary,
                   }}
                 >
                   {option}
@@ -77,7 +79,7 @@ export default function IntentScreen() {
           {onboarding.intent.cta}
         </Button>
         <Pressable onPress={handleContinue} style={{ alignItems: 'center', padding: 10 }}>
-          <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: Colors.textMuted }}>
+          <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: colors.textMuted }}>
             Skip
           </Text>
         </Pressable>

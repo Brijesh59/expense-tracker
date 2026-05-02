@@ -5,7 +5,8 @@ import {
   BottomSheetScrollView,
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { H3, Caption } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { useCategories } from '@/hooks/useCategories';
@@ -27,6 +28,7 @@ interface BudgetFormSheetProps {
 
 export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetProps>(
   ({ month, year, existingCategoryIds = [], onSaved }, ref) => {
+    const { colors } = useTheme();
     const sheetRef = useRef<BottomSheetModal>(null);
     const categories = useCategories();
     const addBudget = useLumaStore(s => s.addBudget);
@@ -100,8 +102,8 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
         ref={sheetRef}
         snapPoints={['60%']}
         enablePanDownToClose
-        backgroundStyle={{ backgroundColor: Colors.surface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
-        handleIndicatorStyle={{ backgroundColor: Colors.textMuted, width: 36 }}
+        backgroundStyle={{ backgroundColor: colors.surface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
+        handleIndicatorStyle={{ backgroundColor: colors.textMuted, width: 36 }}
         backdropComponent={(props) => (
           <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.6} />
         )}
@@ -135,8 +137,8 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
                   paddingVertical: 10,
                   borderRadius: Radius.none,
                   borderWidth: 1.5,
-                  borderColor: selectedCategoryId === cat.id ? cat.color : Colors.border,
-                  backgroundColor: selectedCategoryId === cat.id ? `${cat.color}18` : Colors.surface,
+                  borderColor: selectedCategoryId === cat.id ? cat.color : colors.border,
+                  backgroundColor: selectedCategoryId === cat.id ? `${cat.color}18` : colors.surface,
                   marginRight: 8,
                 }}
               >
@@ -145,7 +147,7 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
                   style={{
                     fontFamily: selectedCategoryId === cat.id ? Fonts.semibold : Fonts.regular,
                     fontSize: 14,
-                    color: selectedCategoryId === cat.id ? cat.color : Colors.textSecondary,
+                    color: selectedCategoryId === cat.id ? cat.color : colors.textSecondary,
                   }}
                 >
                   {cat.name}
@@ -159,27 +161,27 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: Colors.surface2,
+              backgroundColor: colors.input,
               borderRadius: Radius.sm,
               borderWidth: 1,
-              borderColor: Colors.border,
+              borderColor: colors.inputBorder,
               paddingHorizontal: Spacing.md,
               paddingVertical: 12,
               marginBottom: Spacing.xl,
             }}
           >
-            <Text style={{ fontFamily: Fonts.bold, fontSize: 20, color: Colors.textMuted, marginRight: 4 }}>₹</Text>
+            <Text style={{ fontFamily: Fonts.bold, fontSize: 20, color: colors.textMuted, marginRight: 4 }}>₹</Text>
             <TextInput
               value={amount}
               onChangeText={setAmount}
               placeholder="0"
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               keyboardType="decimal-pad"
               autoFocus
               style={{
                 fontFamily: Fonts.bold,
                 fontSize: 24,
-                color: Colors.textPrimary,
+                color: colors.textPrimary,
                 flex: 1,
                 fontVariant: ['tabular-nums'],
               }}
@@ -205,7 +207,7 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
               <Text style={{
                 fontFamily: Fonts.regular,
                 fontSize: 14,
-                color: deleting ? Colors.textMuted : Colors.red,
+                color: deleting ? colors.textMuted : colors.red,
               }}>
                 {deleting ? 'Deleting...' : 'Delete budget'}
               </Text>
