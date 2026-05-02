@@ -1,21 +1,26 @@
-import React, { useRef } from 'react';
-import { View, ScrollView } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Colors, Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Text } from 'react-native';
+import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { H2, Caption } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { MonthSelector } from '@/components/ui/MonthSelector';
+import { MonthPickerModal } from '@/components/ui/MonthPickerModal';
 import { CategoryBudgetCard } from '@/components/overview/CategoryBudgetCard';
 import { BudgetFormSheet, BudgetFormSheetRef } from '@/components/sheets/BudgetFormSheet';
 import { useMonthStore } from '@/store/monthStore';
+import { getMonthLabel } from '@/utils/dates';
+import { haptic } from '@/utils/haptics';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useCategories } from '@/hooks/useCategories';
 import { emptyStates } from '@/constants/copy';
 
 export default function BudgetsScreen() {
-  const { month, year } = useMonthStore();
+  const { month, year, setMonth } = useMonthStore();
+  const [pickerVisible, setPickerVisible] = useState(false);
   const { budgetsWithSpend } = useBudgets({ month, year });
   const categories = useCategories();
   const budgetSheetRef = useRef<BudgetFormSheetRef>(null);
@@ -36,12 +41,20 @@ export default function BudgetsScreen() {
             paddingTop: Spacing.md,
             paddingBottom: Spacing.sm,
             flexDirection: 'row',
-            justifyContent: 'space-between',
             alignItems: 'center',
+            gap: 12,
           }}
         >
-          <H2>Budgets</H2>
-          <MonthSelector />
+          <H2 style={{ flex: 1 }}>Budgets</H2>
+          <Pressable
+            onPress={() => { haptic.light(); setPickerVisible(true); }}
+            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface2, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 5, gap: 5 }}
+          >
+            <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}>
+              {getMonthLabel(month, year)}
+            </Text>
+            <Ionicons name="chevron-down" size={11} color={Colors.textSecondary} />
+          </Pressable>
         </View>
 
         {hasBudgets ? (
@@ -74,6 +87,13 @@ export default function BudgetsScreen() {
         )}
       </ScrollView>
 
+      <MonthPickerModal
+        visible={pickerVisible}
+        month={month}
+        year={year}
+        onSelect={(m, y) => { haptic.light(); setMonth(m, y); setPickerVisible(false); }}
+        onClose={() => setPickerVisible(false)}
+      />
       <BudgetFormSheet
         ref={budgetSheetRef}
         month={month}

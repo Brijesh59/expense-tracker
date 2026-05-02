@@ -563,7 +563,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
               <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: Colors.textSecondary, marginBottom: Spacing.lg, textAlign: 'center' }}>
                 Something went wrong.{'\n'}Check mic permissions and try again.
               </Text>
-              <Button onPress={resetState}>Try again</Button>
+              <Button onPress={resetState} fullWidth>Try again</Button>
             </>
           )}
         </BottomSheetView>

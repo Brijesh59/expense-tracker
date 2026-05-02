@@ -1,6 +1,8 @@
-import React from 'react';
-import { ScrollView, View, Text } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, View, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -8,14 +10,16 @@ import Animated, {
   Easing,
   withTiming,
 } from 'react-native-reanimated';
-import { Colors, Spacing, Fonts } from '@/constants/theme';
+import { Colors, Spacing, Fonts, Radius } from '@/constants/theme';
 import { H2, H3, BodyMedium, Caption } from '@/components/ui/Typography';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { MonthSelector } from '@/components/ui/MonthSelector';
+import { MonthPickerModal } from '@/components/ui/MonthPickerModal';
 import { DonutChart } from '@/components/charts/DonutChart';
 import { DailyBarChart } from '@/components/charts/DailyBarChart';
 import { useMonthStore } from '@/store/monthStore';
+import { getMonthLabel } from '@/utils/dates';
+import { haptic } from '@/utils/haptics';
 import { useInsights } from '@/hooks/useInsights';
 import { useCategories } from '@/hooks/useCategories';
 import { formatAmount } from '@/utils/currency';
@@ -87,7 +91,8 @@ function InsightCardItem({ card, index }: { card: InsightCard; index: number }) 
 }
 
 export default function InsightsScreen() {
-  const { month, year } = useMonthStore();
+  const { month, year, setMonth } = useMonthStore();
+  const [pickerVisible, setPickerVisible] = useState(false);
   const {
     totalSpent,
     prevTotalSpent,
@@ -113,12 +118,19 @@ export default function InsightsScreen() {
             paddingTop: Spacing.md,
             paddingBottom: Spacing.sm,
             flexDirection: 'row',
-            justifyContent: 'space-between',
             alignItems: 'center',
           }}
         >
-          <H2>Insights</H2>
-          <MonthSelector />
+          <H2 style={{ flex: 1 }}>Insights</H2>
+          <Pressable
+            onPress={() => { haptic.light(); setPickerVisible(true); }}
+            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface2, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 5, gap: 5 }}
+          >
+            <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}>
+              {getMonthLabel(month, year)}
+            </Text>
+            <Ionicons name="chevron-down" size={11} color={Colors.textSecondary} />
+          </Pressable>
         </View>
 
         {isEmpty ? (
@@ -189,6 +201,13 @@ export default function InsightsScreen() {
           </View>
         )}
       </ScrollView>
+      <MonthPickerModal
+        visible={pickerVisible}
+        month={month}
+        year={year}
+        onSelect={(m, y) => { haptic.light(); setMonth(m, y); setPickerVisible(false); }}
+        onClose={() => setPickerVisible(false)}
+      />
     </SafeAreaView>
   );
 }

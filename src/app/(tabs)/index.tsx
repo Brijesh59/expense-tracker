@@ -138,7 +138,7 @@ export default function OverviewScreen() {
                   )}
                 </Svg>
                 <Pressable
-                  onPress={() => { haptic.light(); router.push('/(tabs)/budgets'); }}
+                  onPress={() => { haptic.light(); router.push('/budgets'); }}
                   style={{
                     position: 'absolute',
                     top: 4, left: 4,
@@ -155,10 +155,9 @@ export default function OverviewScreen() {
             );
           })()}
 
-          {/* Insights + Settings — same 44×44 container, invisible ring to match budget button size */}
+          {/* Settings — same 44×44 container, invisible ring to match budget button size */}
           {[
-            { icon: 'trending-up-outline', route: '/(tabs)/insights' },
-            { icon: 'settings-outline', route: '/(tabs)/settings' },
+            { icon: 'settings-outline', route: '/settings' },
           ].map(({ icon, route }) => (
             <View key={route} style={{ width: 44, height: 44 }}>
               <Svg width={44} height={44} style={{ position: 'absolute' }}>

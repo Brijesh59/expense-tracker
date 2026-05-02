@@ -3,9 +3,17 @@ import { useLumaStore } from '@/db/store';
 import type { Transaction } from '@/db/types';
 import { startOfMonth, endOfMonth, formatDateLabel } from '@/utils/dates';
 
-interface UseTransactionsOptions {
+interface MonthFilter {
   month: number;
   year: number;
+}
+
+interface UseTransactionsOptions {
+  // Single-month mode (overview screen)
+  month?: number;
+  year?: number;
+  // Multi-month mode (transactions screen): empty array = all time
+  months?: MonthFilter[];
   categoryId?: string;
   searchQuery?: string;
 }
@@ -15,16 +23,26 @@ export interface TransactionSection {
   data: Transaction[];
 }
 
-export function useTransactions({ month, year, categoryId, searchQuery }: UseTransactionsOptions) {
+export function useTransactions({ month, year, months, categoryId, searchQuery }: UseTransactionsOptions) {
   const allTransactions = useLumaStore(s => s.transactions);
-
-  const start = startOfMonth(month, year);
-  const end = endOfMonth(month, year);
 
   const filtered = useMemo(() => {
     return allTransactions
       .filter(t => {
-        if (t.date < start || t.date > end) return false;
+        if (months !== undefined) {
+          if (months.length > 0) {
+            const d = new Date(t.date);
+            const tMonth = d.getMonth() + 1;
+            const tYear = d.getFullYear();
+            if (!months.some(m => m.month === tMonth && m.year === tYear)) return false;
+          }
+          // months.length === 0 → all time, no date filter
+        } else if (month !== undefined && year !== undefined) {
+          const start = startOfMonth(month, year);
+          const end = endOfMonth(month, year);
+          if (t.date < start || t.date > end) return false;
+        }
+
         if (categoryId && t.categoryId !== categoryId) return false;
         if (searchQuery?.trim()) {
           return t.merchant.toLowerCase().includes(searchQuery.trim().toLowerCase());
@@ -32,7 +50,7 @@ export function useTransactions({ month, year, categoryId, searchQuery }: UseTra
         return true;
       })
       .sort((a, b) => b.date - a.date);
-  }, [allTransactions, start, end, categoryId, searchQuery]);
+  }, [allTransactions, months, month, year, categoryId, searchQuery]);
 
   const sections = useMemo<TransactionSection[]>(() => {
     const map: Record<string, Transaction[]> = {};

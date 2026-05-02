@@ -8,39 +8,66 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
-import { H2, BodyMedium, Caption } from '@/components/ui/Typography';
+import { H2, Caption } from '@/components/ui/Typography';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { MonthSelector } from '@/components/ui/MonthSelector';
+import { MultiMonthPickerModal } from '@/components/ui/MultiMonthPickerModal';
 import { AddExpenseSheet, AddExpenseSheetRef } from '@/components/sheets/AddExpenseSheet';
-import { useMonthStore } from '@/store/monthStore';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { formatAmount } from '@/utils/currency';
+import { getMonthLabel } from '@/utils/dates';
 import { emptyStates } from '@/constants/copy';
 import { haptic } from '@/utils/haptics';
 import { TransactionRow } from '@/components/ui/TransactionRow';
-import type { Transaction } from '@/db/types';
-import type { Category } from '@/db/types';
+
+function currentMonthEntry() {
+  const now = new Date();
+  return { month: now.getMonth() + 1, year: now.getFullYear() };
+}
 
 export default function TransactionsScreen() {
-  const { month, year } = useMonthStore();
+  const [selectedMonths, setSelectedMonths] = useState([currentMonthEntry()]);
+  const [monthPickerVisible, setMonthPickerVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
   const categories = useCategories();
   const editSheetRef = useRef<AddExpenseSheetRef>(null);
 
   const { sections, total } = useTransactions({
-    month,
-    year,
+    months: selectedMonths,
     categoryId: selectedCategoryId,
     searchQuery,
   });
+
+  const toggleMonth = (month: number, year: number) => {
+    setSelectedMonths(prev => {
+      const exists = prev.some(m => m.month === month && m.year === year);
+      if (exists) {
+        return prev.filter(m => !(m.month === month && m.year === year));
+      }
+      return [...prev, { month, year }].sort((a, b) =>
+        a.year !== b.year ? b.year - a.year : b.month - a.month
+      );
+    });
+  };
+
+  const clearMonths = () => setSelectedMonths([]);
+
+  const monthLabel =
+    selectedMonths.length === 0
+      ? 'All time'
+      : selectedMonths.length === 1
+      ? getMonthLabel(selectedMonths[0].month, selectedMonths[0].year)
+      : `${selectedMonths.length} months`;
 
   const isEmpty = sections.length === 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+      {/* Header */}
       <View
         style={{
           paddingHorizontal: Spacing.md,
@@ -52,9 +79,26 @@ export default function TransactionsScreen() {
         }}
       >
         <H2>Transactions</H2>
-        <MonthSelector />
+        <Pressable
+          onPress={() => { haptic.light(); setMonthPickerVisible(true); }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: Colors.surface2,
+            borderRadius: Radius.full,
+            paddingHorizontal: 12,
+            paddingVertical: 5,
+            gap: 5,
+          }}
+        >
+          <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}>
+            {monthLabel}
+          </Text>
+          <Ionicons name="chevron-down" size={11} color={Colors.textSecondary} />
+        </Pressable>
       </View>
 
+      {/* Search bar */}
       <View
         style={{
           marginHorizontal: Spacing.md,
@@ -84,6 +128,7 @@ export default function TransactionsScreen() {
         )}
       </View>
 
+      {/* Category filter chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -176,6 +221,13 @@ export default function TransactionsScreen() {
         />
       )}
 
+      <MultiMonthPickerModal
+        visible={monthPickerVisible}
+        selectedMonths={selectedMonths}
+        onToggle={toggleMonth}
+        onClear={clearMonths}
+        onClose={() => setMonthPickerVisible(false)}
+      />
       <AddExpenseSheet ref={editSheetRef} />
     </SafeAreaView>
   );
