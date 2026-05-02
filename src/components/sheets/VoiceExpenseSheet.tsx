@@ -26,7 +26,7 @@ import { useLumaStore } from '@/db/store';
 import { haptic } from '@/utils/haptics';
 import { computeNudge, NudgeResult } from '@/utils/nudgeEngine';
 import { getCurrentMonth } from '@/utils/dates';
-import { parseVoiceExpense, ParsedExpense } from '@/utils/parseVoiceExpense';
+import { processVoiceInput, VoiceResult } from '@/utils/parseVoiceExpense';
 
 export interface VoiceExpenseSheetRef {
   present: () => void;
@@ -38,7 +38,7 @@ interface VoiceExpenseSheetProps {
   onEditFirst?: (prefill: { amount: string; categoryId: string; merchant: string; paymentMethod: string | null; notes: string }) => void;
 }
 
-type VoiceState = 'idle' | 'listening' | 'parsing' | 'parsed' | 'error' | 'unavailable';
+type VoiceState = 'idle' | 'listening' | 'parsing' | 'log_result' | 'query_result' | 'error' | 'unavailable';
 
 export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSheetProps>(
   ({ onExpenseSaved, onEditFirst }, ref) => {
@@ -51,7 +51,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
 
     const [voiceState, setVoiceState] = useState<VoiceState>('idle');
     const [transcript, setTranscript] = useState('');
-    const [parsed, setParsed] = useState<ParsedExpense | null>(null);
+    const [voiceResult, setVoiceResult] = useState<VoiceResult | null>(null);
     const [saving, setSaving] = useState(false);
 
     // Pulsing ring for listening state
@@ -64,14 +64,8 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
 
     useEffect(() => {
       if (voiceState === 'listening') {
-        pulseScale.value = withRepeat(
-          withTiming(1.6, { duration: 1000, easing: Easing.out(Easing.ease) }),
-          -1, true
-        );
-        pulseOpacity.value = withRepeat(
-          withTiming(0, { duration: 1000, easing: Easing.out(Easing.ease) }),
-          -1, true
-        );
+        pulseScale.value = withRepeat(withTiming(1.6, { duration: 1000, easing: Easing.out(Easing.ease) }), -1, true);
+        pulseOpacity.value = withRepeat(withTiming(0, { duration: 1000, easing: Easing.out(Easing.ease) }), -1, true);
       } else {
         cancelAnimation(pulseScale);
         cancelAnimation(pulseOpacity);
@@ -85,14 +79,14 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       setTranscript(text);
       if (event.isFinal && text) {
         setVoiceState('parsing');
-        parseVoiceExpense(text, categories)
+        processVoiceInput(text, categories, allTransactions)
           .then(result => {
-            setParsed(result);
-            setVoiceState('parsed');
+            setVoiceResult(result);
+            setVoiceState(result.intent === 'log' ? 'log_result' : 'query_result');
             haptic.light();
           })
-          .catch((err) => {
-            console.error('[VoiceExpense] Gemini parse failed:', err);
+          .catch(err => {
+            console.error('[VoiceAssistant] failed:', err);
             setVoiceState('error');
           });
       }
@@ -109,7 +103,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
     const resetState = useCallback(() => {
       setVoiceState('idle');
       setTranscript('');
-      setParsed(null);
+      setVoiceResult(null);
     }, []);
 
     const startListening = useCallback(async () => {
@@ -118,7 +112,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
       if (!granted) { setVoiceState('error'); return; }
       setTranscript('');
-      setParsed(null);
+      setVoiceResult(null);
       setVoiceState('listening');
       ExpoSpeechRecognitionModule.start({ lang: 'en-IN', interimResults: true, continuous: false });
       haptic.medium();
@@ -128,25 +122,27 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       ExpoSpeechRecognitionModule.stop();
     }, []);
 
+    // Narrow to log intent for save/edit handlers
+    const logResult = voiceResult?.intent === 'log' ? voiceResult : null;
+
     const handleLogIt = useCallback(async () => {
-      if (!parsed?.amount || saving) return;
+      if (!logResult?.amount || saving) return;
       setSaving(true);
       haptic.medium();
 
-      const categoryId = parsed.categoryId ?? 'other';
-      const paymentMethod = parsed.paymentMethod ?? 'UPI';
+      const categoryId = logResult.categoryId ?? 'other';
+      const paymentMethod = logResult.paymentMethod ?? 'UPI';
       const { month, year } = getCurrentMonth();
 
       try {
         await addTransaction({
-          amount: parsed.amount,
+          amount: logResult.amount,
           categoryId,
-          merchant: parsed.merchant,
+          merchant: logResult.merchant,
           date: Date.now(),
           paymentMethod,
-          notes: parsed.notes,
+          notes: logResult.notes,
         });
-
         await setSetting('last_category_id', categoryId);
         await setSetting('last_payment_method', paymentMethod);
 
@@ -158,7 +154,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
         const categoryBudget = allBudgets.find(
           b => b.categoryId === categoryId && b.month === month && b.year === year
         )?.amount ?? null;
-        const categorySpent = catTransactions.reduce((s, t) => s + t.amount, 0) + parsed.amount;
+        const categorySpent = catTransactions.reduce((s, t) => s + t.amount, 0) + logResult.amount;
         const now = new Date();
         const todayCount = catTransactions.filter(t => {
           const d = new Date(t.date);
@@ -167,7 +163,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
 
         const selectedCategory = categories.find(c => c.id === categoryId);
         const nudge = computeNudge({
-          transactionAmount: parsed.amount,
+          transactionAmount: logResult.amount,
           categorySpentTotal: categorySpent,
           categoryBudget,
           categoryName: selectedCategory?.name ?? 'this',
@@ -181,33 +177,33 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       } finally {
         setSaving(false);
       }
-    }, [parsed, saving, addTransaction, setSetting, allTransactions, allBudgets, categories, onExpenseSaved]);
+    }, [logResult, saving, addTransaction, setSetting, allTransactions, allBudgets, categories, onExpenseSaved]);
 
     const handleEditFirst = useCallback(() => {
-      if (!parsed) return;
+      if (!logResult) return;
       onEditFirst?.({
-        amount: String(parsed.amount ?? ''),
-        categoryId: parsed.categoryId ?? 'other',
-        merchant: parsed.merchant,
-        paymentMethod: parsed.paymentMethod,
-        notes: parsed.notes,
+        amount: String(logResult.amount ?? ''),
+        categoryId: logResult.categoryId ?? 'other',
+        merchant: logResult.merchant,
+        paymentMethod: logResult.paymentMethod,
+        notes: logResult.notes,
       });
       sheetRef.current?.dismiss();
-    }, [parsed, onEditFirst]);
+    }, [logResult, onEditFirst]);
 
     useImperativeHandle(ref, () => ({
       present: () => { resetState(); sheetRef.current?.present(); },
       dismiss: () => sheetRef.current?.dismiss(),
     }));
 
-    const selectedCategory = parsed?.categoryId
-      ? categories.find(c => c.id === parsed.categoryId)
+    const selectedCategory = logResult?.categoryId
+      ? categories.find(c => c.id === logResult.categoryId)
       : null;
 
     return (
       <BottomSheetModal
         ref={sheetRef}
-        snapPoints={['52%']}
+        snapPoints={['55%']}
         enablePanDownToClose
         backgroundStyle={{ backgroundColor: Colors.surface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
         handleIndicatorStyle={{ backgroundColor: Colors.textMuted, width: 36 }}
@@ -220,7 +216,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
         }}
       >
         <BottomSheetView style={{ flex: 1, paddingHorizontal: Spacing.md, paddingTop: 8, paddingBottom: 48, alignItems: 'center' }}>
-          <H3 style={{ marginBottom: Spacing.xl, alignSelf: 'flex-start' }}>Voice expense</H3>
+          <H3 style={{ marginBottom: Spacing.xl, alignSelf: 'flex-start' }}>Voice assistant</H3>
 
           {/* ── Idle ── */}
           {voiceState === 'idle' && (
@@ -238,8 +234,10 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                 <Ionicons name="mic-outline" size={30} color={Colors.textPrimary} />
               </Pressable>
               <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
-                Tap the mic and say your expense{'\n'}
-                <Text style={{ color: Colors.textMuted }}>"200 on coffee at Starbucks"</Text>
+                Log an expense or ask about your spending{'\n'}
+                <Text style={{ color: Colors.textMuted }}>"₹200 on coffee at Starbucks"</Text>
+                {'\n'}
+                <Text style={{ color: Colors.textMuted }}>"How much did I spend on clothes?"</Text>
               </Text>
             </>
           )}
@@ -267,12 +265,12 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
             </>
           )}
 
-          {/* ── Parsing (Gemini processing) ── */}
+          {/* ── Parsing ── */}
           {voiceState === 'parsing' && (
             <>
               <ActivityIndicator color={Colors.primary} size="large" style={{ marginBottom: Spacing.lg }} />
               <Text style={{ fontFamily: Fonts.medium, fontSize: 14, color: Colors.textSecondary }}>
-                Understanding your expense...
+                Thinking...
               </Text>
               {transcript ? (
                 <Caption style={{ marginTop: 8, textAlign: 'center', paddingHorizontal: 16 }}>"{transcript}"</Caption>
@@ -280,12 +278,12 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
             </>
           )}
 
-          {/* ── Parsed ── */}
-          {voiceState === 'parsed' && parsed && (
+          {/* ── Log result ── */}
+          {voiceState === 'log_result' && logResult && (
             <View style={{ width: '100%', alignItems: 'center' }}>
-              {parsed.amount ? (
+              {logResult.amount ? (
                 <Text style={{ fontFamily: Fonts.bold, fontSize: 52, color: Colors.textPrimary, marginBottom: 6 }}>
-                  ₹{Number.isInteger(parsed.amount) ? parsed.amount : parsed.amount.toFixed(2)}
+                  ₹{Number.isInteger(logResult.amount) ? logResult.amount : logResult.amount.toFixed(2)}
                 </Text>
               ) : (
                 <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: Colors.red, marginBottom: 6 }}>
@@ -306,16 +304,10 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                 </Text>
               )}
 
-              {parsed.merchant ? (
-                <Caption style={{ marginBottom: 2 }}>{parsed.merchant}</Caption>
-              ) : null}
-
-              {parsed.notes ? (
-                <Caption style={{ marginBottom: 2, color: Colors.textMuted }}>{parsed.notes}</Caption>
-              ) : null}
-
-              {parsed.paymentMethod ? (
-                <Caption style={{ marginBottom: Spacing.xl, color: Colors.textMuted }}>{parsed.paymentMethod}</Caption>
+              {logResult.merchant ? <Caption style={{ marginBottom: 2 }}>{logResult.merchant}</Caption> : null}
+              {logResult.notes ? <Caption style={{ marginBottom: 2, color: Colors.textMuted }}>{logResult.notes}</Caption> : null}
+              {logResult.paymentMethod ? (
+                <Caption style={{ marginBottom: Spacing.xl, color: Colors.textMuted }}>{logResult.paymentMethod}</Caption>
               ) : (
                 <View style={{ marginBottom: Spacing.xl }} />
               )}
@@ -325,7 +317,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                   <Button onPress={handleEditFirst} variant="secondary" fullWidth>Edit</Button>
                 </View>
                 <View style={{ flex: 2 }}>
-                  <Button onPress={handleLogIt} disabled={!parsed.amount} loading={saving} fullWidth>
+                  <Button onPress={handleLogIt} disabled={!logResult.amount} loading={saving} fullWidth>
                     Log it
                   </Button>
                 </View>
@@ -334,6 +326,33 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
               <Pressable onPress={resetState} style={{ marginTop: Spacing.md, padding: 4, alignSelf: 'center' }}>
                 <Caption style={{ color: Colors.textMuted }}>Try again</Caption>
               </Pressable>
+            </View>
+          )}
+
+          {/* ── Query result ── */}
+          {voiceState === 'query_result' && voiceResult?.intent === 'query' && (
+            <View style={{ width: '100%', alignItems: 'center' }}>
+              <Ionicons name="stats-chart" size={28} color={Colors.primary} style={{ marginBottom: Spacing.md }} />
+
+              {transcript ? (
+                <Caption style={{ marginBottom: Spacing.md, textAlign: 'center', paddingHorizontal: 8 }}>
+                  "{transcript}"
+                </Caption>
+              ) : null}
+
+              <Text style={{
+                fontFamily: Fonts.medium,
+                fontSize: 16,
+                color: Colors.textPrimary,
+                textAlign: 'center',
+                lineHeight: 24,
+                paddingHorizontal: 8,
+                marginBottom: Spacing.xl,
+              }}>
+                {voiceResult.answer}
+              </Text>
+
+              <Button onPress={resetState} fullWidth>Ask another</Button>
             </View>
           )}
 

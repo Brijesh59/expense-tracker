@@ -74,6 +74,34 @@ pnpm android
 - **Notifications** — permission must be requested at runtime. iOS requires a physical device to receive notifications.
 - **Haptics** — works on physical devices only, silently no-ops on simulator.
 
+## Voice Assistant
+
+Single mic tap → two possible outcomes:
+
+```
+┌────────────────────────────────────┬────────┬──────────────────────────────────────────┐
+│              You say               │ Intent │                  Result                  │
+├────────────────────────────────────┼────────┼──────────────────────────────────────────┤
+│ "200 on coffee at Starbucks"       │ log    │ Shows ₹200 · Coffee · Starbucks → Log it │
+│                                    │        │ / Edit                                   │
+├────────────────────────────────────┼────────┼──────────────────────────────────────────┤
+│ "bought clothes for 500"           │ log    │ Shows ₹500 · Shopping · notes: clothes   │
+├────────────────────────────────────┼────────┼──────────────────────────────────────────┤
+│ "how much did I spend on clothes?" │ query  │ Shows answer from your actual data       │
+├────────────────────────────────────┼────────┼──────────────────────────────────────────┤
+│ "what was my total last month?"    │ query  │ Summarises last month's spending         │
+├────────────────────────────────────┼────────┼──────────────────────────────────────────┤
+│ "how many times did I eat out      │ query  │ Counts from recent transactions          │
+│  this week?"                       │        │                                          │
+└────────────────────────────────────┴────────┴──────────────────────────────────────────┘
+```
+
+**How it works:** The LLM receives a compact context of your spending history (this month + last month + 3-month rollup + last 7 days daily + last 15 transactions) alongside the transcript. It decides the intent and either returns structured expense fields or writes a conversational answer. When ambiguous, it defaults to `log`.
+
+The `query_result` UI shows a yellow chart icon, your question in muted text, the answer prominently, and an "Ask another" button that resets to idle.
+
+Requires `EXPO_PUBLIC_GEMINI_API_KEY` or `EXPO_PUBLIC_OPEN_API_KEY` in `.env`. Switch providers by changing `PROVIDER` in `src/utils/parseVoiceExpense.ts`.
+
 ## Live Demo
 
 Tab 1 (`src/app/(tabs)/index.tsx`) exercises every installed dependency:
