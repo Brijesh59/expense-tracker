@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   SectionList,
@@ -8,13 +8,6 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withDelay,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
 import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
 import { H2, BodyMedium, Caption } from '@/components/ui/Typography';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -26,78 +19,9 @@ import { useCategories } from '@/hooks/useCategories';
 import { formatAmount } from '@/utils/currency';
 import { emptyStates } from '@/constants/copy';
 import { haptic } from '@/utils/haptics';
-import { stagger, springs } from '@/constants/animations';
+import { TransactionRow } from '@/components/ui/TransactionRow';
 import type { Transaction } from '@/db/types';
 import type { Category } from '@/db/types';
-
-function TransactionRow({
-  transaction,
-  category,
-  index,
-  onPress,
-}: {
-  transaction: Transaction;
-  category: Category | undefined;
-  index: number;
-  onPress: () => void;
-}) {
-  const translateX = useSharedValue(-20);
-  const opacity = useSharedValue(0);
-
-  React.useEffect(() => {
-    translateX.value = withDelay(index * stagger, withSpring(0, springs.snappy));
-    opacity.value = withDelay(index * stagger, withTiming(1, { duration: 250 }));
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-    opacity: opacity.value,
-  }));
-
-  return (
-    <Animated.View style={animatedStyle}>
-      <Pressable
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingVertical: 12,
-          paddingHorizontal: Spacing.md,
-          borderBottomWidth: 1,
-          borderBottomColor: `${Colors.border}60`,
-        }}
-        onPress={onPress}
-      >
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: category ? `${category.color}25` : Colors.surface2,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: 12,
-          }}
-        >
-          <Text style={{ fontSize: 18 }}>{category?.icon ?? '📦'}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <BodyMedium>{transaction.merchant || category?.name || 'Expense'}</BodyMedium>
-          <Caption>{category?.name}</Caption>
-        </View>
-        <Text
-          style={{
-            fontFamily: Fonts.semibold,
-            fontSize: 15,
-            color: Colors.textPrimary,
-            fontVariant: ['tabular-nums'],
-          }}
-        >
-          {formatAmount(transaction.amount)}
-        </Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
 
 export default function TransactionsScreen() {
   const { month, year } = useMonthStore();

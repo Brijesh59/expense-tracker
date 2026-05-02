@@ -42,7 +42,7 @@ export function EmptyState({ headline, subtext, ctaLabel, onCTA, icon = '🐱' }
         {subtext}
       </Body>
       {ctaLabel && onCTA && (
-        <Button onPress={onCTA} style={{ marginTop: Spacing.md }}>
+        <Button onPress={onCTA} style={{ marginTop: Spacing.md, alignSelf: 'center' }}>
           {ctaLabel}
         </Button>
       )}

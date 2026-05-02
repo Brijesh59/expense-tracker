@@ -20,7 +20,6 @@ const TAB_ICONS_ACTIVE: Record<string, IoniconName> = {
   transactions: 'receipt',
   budgets: 'wallet',
   insights: 'bar-chart',
-  settings: 'settings',
 };
 
 const TAB_ICONS_INACTIVE: Record<string, IoniconName> = {
@@ -28,7 +27,6 @@ const TAB_ICONS_INACTIVE: Record<string, IoniconName> = {
   transactions: 'receipt-outline',
   budgets: 'wallet-outline',
   insights: 'bar-chart-outline',
-  settings: 'settings-outline',
 };
 
 const TAB_LABELS: Record<string, string> = {
@@ -36,7 +34,6 @@ const TAB_LABELS: Record<string, string> = {
   transactions: 'Expenses',
   budgets: 'Budgets',
   insights: 'Insights',
-  settings: 'Settings',
 };
 
 interface TabItemProps {
@@ -120,7 +117,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
       }}
     >
-      {state.routes.map((route, index) => {
+      {state.routes.filter(r => r.name !== 'settings').map((route, index) => {
         const isFocused = state.index === index;
 
         const onPress = () => {

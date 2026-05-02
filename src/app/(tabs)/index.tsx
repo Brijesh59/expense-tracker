@@ -1,33 +1,88 @@
-import React, { useCallback } from 'react';
-import { ScrollView, View, Text, RefreshControl } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { ScrollView, View, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Colors, Spacing, Fonts } from '@/constants/theme';
-import { H2, H3, Body, Caption, BodyMedium } from '@/components/ui/Typography';
-import { BudgetRing } from '@/components/ui/BudgetRing';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Spacing, Fonts, Radius } from '@/constants/theme';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { MonthSelector } from '@/components/ui/MonthSelector';
-import { CategoryBudgetCard } from '@/components/overview/CategoryBudgetCard';
+import { MonthPickerModal } from '@/components/ui/MonthPickerModal';
+import { BudgetBarChart } from '@/components/overview/BudgetBarChart';
+import { TransactionRow } from '@/components/ui/TransactionRow';
+import { AddExpenseSheet, AddExpenseSheetRef } from '@/components/sheets/AddExpenseSheet';
 import { useMonthStore } from '@/store/monthStore';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useCategories } from '@/hooks/useCategories';
-import { formatAmount, formatAmountFull } from '@/utils/currency';
-import { getGreeting } from '@/utils/dates';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useLumaStore } from '@/db/store';
+import { formatAmount } from '@/utils/currency';
+import { getMonthLabel } from '@/utils/dates';
+import { haptic } from '@/utils/haptics';
 import { emptyStates } from '@/constants/copy';
 import { useAddExpense } from './_layout';
 
 export default function OverviewScreen() {
-  const { month, year } = useMonthStore();
-  const { budgetsWithSpend, totalBudget, totalSpent, overallRatio } = useBudgets({ month, year });
+  const { month, year, setMonth } = useMonthStore();
+  const { budgetsWithSpend, totalBudget, totalSpent } = useBudgets({ month, year });
   const categories = useCategories();
+  const { sections } = useTransactions({ month, year });
+  const allBudgets = useLumaStore(s => s.budgets);
   const { open: openAddExpense } = useAddExpense();
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const editSheetRef = useRef<AddExpenseSheetRef>(null);
 
   const getCategoryById = useCallback(
     (id: string) => categories.find(c => c.id === id),
     [categories]
   );
 
-  const hasBudgets = budgetsWithSpend.length > 0;
+  // True if user has set up any budgets at all (any month)
+  const hasAnyBudgets = allBudgets.length > 0;
+  // True if this specific month has spending against budgets (for bar chart)
+  const hasSpendThisMonth = budgetsWithSpend.some(b => b.spent > 0);
+  const remaining = totalBudget - totalSpent;
+
+  const handleMonthSelect = (m: number, y: number) => {
+    haptic.light();
+    setMonth(m, y);
+  };
+
+  const TransactionList = () => (
+    <View style={{ marginTop: Spacing.xl }}>
+      {sections.map((section) => {
+        const sectionTotal = section.data.reduce((s, t) => s + t.amount, 0);
+        return (
+          <View key={section.title}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingHorizontal: Spacing.md,
+                paddingTop: 14,
+                paddingBottom: 6,
+              }}
+            >
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textSecondary }}>
+                {section.title}
+              </Text>
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textSecondary }}>
+                {formatAmount(sectionTotal)}
+              </Text>
+            </View>
+            {section.data.map((txn, txnIdx) => (
+              <TransactionRow
+                key={txn.id}
+                transaction={txn}
+                category={getCategoryById(txn.categoryId)}
+                index={txnIdx}
+                onPress={() => { haptic.light(); editSheetRef.current?.presentEdit(txn); }}
+              />
+            ))}
+          </View>
+        );
+      })}
+    </View>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
@@ -35,58 +90,113 @@ export default function OverviewScreen() {
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Settings icon */}
         <View
           style={{
             paddingHorizontal: Spacing.md,
-            paddingTop: Spacing.md,
-            paddingBottom: Spacing.sm,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            paddingTop: Spacing.sm,
+            alignItems: 'flex-end',
           }}
         >
-          <View>
-            <Caption>{getGreeting()}</Caption>
-            <H2>Overview</H2>
-          </View>
-          <MonthSelector />
+          <Pressable
+            onPress={() => router.push('/(tabs)/settings')}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: Colors.surface,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="settings-outline" size={18} color={Colors.textSecondary} />
+          </Pressable>
         </View>
 
-        {hasBudgets ? (
-          <>
-            {/* Budget Ring */}
-            <View style={{ alignItems: 'center', paddingVertical: Spacing.lg }}>
-              <BudgetRing
-                ratio={overallRatio}
-                size={180}
-                centerLabel={`${Math.round(overallRatio * 100)}%`}
-                subLabel={`${formatAmount(totalSpent)} / ${formatAmount(totalBudget)}`}
-              />
-              <View style={{ alignItems: 'center', marginTop: 12 }}>
-                <Caption color={Colors.textSecondary}>
-                  {totalBudget - totalSpent >= 0
-                    ? `${formatAmount(totalBudget - totalSpent)} remaining`
-                    : `Over budget by ${formatAmount(Math.abs(totalBudget - totalSpent))}`}
-                </Caption>
-              </View>
-            </View>
+        {/* Big spent total — ₹ before the number */}
+        <View style={{ paddingHorizontal: Spacing.md, marginTop: Spacing.xs }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <Text
+              style={{
+                fontSize: 28,
+                fontFamily: Fonts.medium,
+                color: Colors.textSecondary,
+                marginTop: 14,
+                marginRight: 3,
+              }}
+            >
+              ₹
+            </Text>
+            <Text
+              style={{
+                fontSize: 72,
+                fontFamily: Fonts.bold,
+                color: Colors.textPrimary,
+                lineHeight: 80,
+                letterSpacing: -2,
+              }}
+            >
+              {totalSpent.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </Text>
+          </View>
 
-            {/* Category List */}
-            <View style={{ paddingHorizontal: Spacing.md }}>
-              <BodyMedium style={{ marginBottom: 12, color: Colors.textSecondary }}>
-                Budgets
-              </BodyMedium>
-              {budgetsWithSpend.map((item, index) => (
-                <CategoryBudgetCard
-                  key={item.budget.id}
-                  item={item}
-                  category={getCategoryById(item.categoryId)}
-                  index={index}
-                  onPress={() => router.push(`/budget/${item.budget.id}`)}
-                />
-              ))}
-            </View>
+          {/* Month pill + remaining */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
+            <Pressable
+              onPress={() => setPickerVisible(true)}
+              style={{
+                backgroundColor: Colors.surface2,
+                borderRadius: Radius.full,
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              <Text
+                style={{ fontFamily: Fonts.medium, fontSize: 13, color: Colors.textPrimary }}
+              >
+                {getMonthLabel(month, year)}
+              </Text>
+              <Ionicons name="chevron-down" size={11} color={Colors.textSecondary} />
+            </Pressable>
+
+            {totalBudget > 0 && (
+              <Text
+                style={{
+                  fontFamily: Fonts.regular,
+                  fontSize: 13,
+                  color: remaining >= 0 ? Colors.textSecondary : Colors.red,
+                }}
+              >
+                {remaining >= 0
+                  ? `₹${remaining.toLocaleString('en-IN', { maximumFractionDigits: 0 })} left`
+                  : `Over by ₹${Math.abs(remaining).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {hasAnyBudgets ? (
+          <>
+            {hasSpendThisMonth && (
+              <BudgetBarChart
+                budgets={budgetsWithSpend}
+                categories={categories}
+                onBarPress={(id) => router.push(`/budget/${id}`)}
+              />
+            )}
+            {sections.length > 0 ? (
+              <TransactionList />
+            ) : (
+              <EmptyState
+                headline="No expenses this month"
+                subtext="Tap + to log your first expense"
+                ctaLabel="Log expense"
+                onCTA={() => openAddExpense()}
+              />
+            )}
           </>
         ) : (
           <EmptyState
@@ -97,6 +207,15 @@ export default function OverviewScreen() {
           />
         )}
       </ScrollView>
+
+      <MonthPickerModal
+        visible={pickerVisible}
+        month={month}
+        year={year}
+        onSelect={handleMonthSelect}
+        onClose={() => setPickerVisible(false)}
+      />
+      <AddExpenseSheet ref={editSheetRef} />
     </SafeAreaView>
   );
 }

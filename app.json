@@ -19,6 +19,8 @@
       "appleTeamId": "VSYD28RGYB",
       "infoPlist": {
         "NSUserNotificationUsageDescription": "Luma sends reminders to help you log expenses and stay on budget.",
+        "NSSpeechRecognitionUsageDescription": "Luma uses speech recognition so you can log expenses by voice.",
+        "NSMicrophoneUsageDescription": "Luma uses the microphone to listen for your expense descriptions.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -58,7 +60,14 @@
           "sounds": []
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Luma to use the microphone to log expenses by voice.",
+          "speechRecognitionPermission": "Allow Luma to use speech recognition to log expenses by voice."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

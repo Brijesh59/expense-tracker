@@ -24,6 +24,7 @@ import type { Transaction } from '@/db/types';
 
 export interface AddExpenseSheetRef {
   present: (prefilledCategoryId?: string) => void;
+  presentPrefilled: (prefill: { amount?: string; categoryId?: string; merchant?: string; paymentMethod?: string | null; notes?: string }) => void;
   presentEdit: (transaction: Transaction) => void;
   dismiss: () => void;
 }
@@ -69,6 +70,20 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
         setAmount('');
         setMerchant('');
         setNotes('');
+        sheetRef.current?.present();
+      },
+      presentPrefilled: ({ amount: a, categoryId: cId, merchant: m, paymentMethod: pm, notes: n } = {}) => {
+        setEditingTransaction(null);
+        setAmount(a ?? '');
+        if (cId) setSelectedCategoryId(cId);
+        setMerchant(m ?? '');
+        setNotes(n ?? '');
+        if (pm && PAYMENT_METHODS.includes(pm)) {
+          setPaymentMethod(pm);
+        } else {
+          const lastPm = getSetting('last_payment_method');
+          if (lastPm) setPaymentMethod(lastPm);
+        }
         sheetRef.current?.present();
       },
       presentEdit: (transaction: Transaction) => {
