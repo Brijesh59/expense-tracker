@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { seedCategories } from './seed';
+import { seedCategories, seedBudgets } from './seed';
 import { Storage } from './storage';
 import type { Budget, Category, Settings, Transaction, Workspace } from './types';
 
@@ -69,6 +69,7 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
       const migrated = await Storage.migrateToWorkspace(ws.id);
       if (!migrated) {
         await seedCategories(ws.id);
+        await seedBudgets(ws.id);
       }
 
       await Storage.saveWorkspaces(workspaces);
@@ -87,6 +88,8 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
     const ws: Workspace = { ...data, id: generateId(), createdAt: Date.now() };
     const workspaces = [...get().workspaces, ws];
     await Storage.saveWorkspaces(workspaces);
+    await seedCategories(ws.id);
+    await seedBudgets(ws.id);
     set({ workspaces });
     return ws;
   },

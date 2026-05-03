@@ -61,12 +61,12 @@ const SEED_BUDGETS: Budget[] = [
   { id: "budget-others", categoryId: "others", amount: 5000, month: currentMonth, year: currentYear, createdAt: now },
 ];
 
-// Seeds categories and budgets into the given workspace on first launch.
 export async function seedCategories(workspaceId: string): Promise<Category[]> {
   const seeded: Category[] = SEED_CATEGORIES.map(c => ({ ...c, isDefault: false }));
-
   await Storage.saveCategoriesFor(workspaceId, seeded);
-  await Storage.saveBudgetsFor(workspaceId, SEED_BUDGETS);
-
   return seeded;
+}
+
+export async function seedBudgets(workspaceId: string): Promise<void> {
+  await Storage.saveBudgetsFor(workspaceId, SEED_BUDGETS);
 }
