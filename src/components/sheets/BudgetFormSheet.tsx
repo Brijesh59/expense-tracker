@@ -1,9 +1,10 @@
 import React, { useState, forwardRef, useRef, useImperativeHandle, useCallback } from 'react';
-import { View, TextInput, ScrollView, Text, Pressable } from 'react-native';
+import { View, ScrollView, Text, Pressable } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetScrollView,
   BottomSheetBackdrop,
+  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -100,15 +101,15 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
     return (
       <BottomSheetModal
         ref={sheetRef}
-        snapPoints={['60%']}
+        snapPoints={['48%']}
         enablePanDownToClose
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
         backgroundStyle={{ backgroundColor: colors.surface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
         handleIndicatorStyle={{ backgroundColor: colors.textMuted, width: 36 }}
         backdropComponent={(props) => (
           <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.6} />
         )}
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
       >
         <BottomSheetScrollView
           keyboardShouldPersistTaps="handled"
@@ -171,13 +172,12 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
             }}
           >
             <Text style={{ fontFamily: Fonts.bold, fontSize: 20, color: colors.textMuted, marginRight: 4 }}>₹</Text>
-            <TextInput
+            <BottomSheetTextInput
               value={amount}
               onChangeText={setAmount}
               placeholder="0"
               placeholderTextColor={colors.textMuted}
               keyboardType="decimal-pad"
-              autoFocus
               style={{
                 fontFamily: Fonts.bold,
                 fontSize: 24,

@@ -50,9 +50,17 @@ export default function BudgetsScreen() {
       >
         {/* Large header */}
         <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.lg, paddingBottom: Spacing.lg }}>
-          <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: colors.textPrimary, marginBottom: Spacing.md }}>
-            Budgets
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.md }}>
+            <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: colors.textPrimary }}>
+              Budgets
+            </Text>
+            <Pressable
+              onPress={() => { haptic.light(); budgetSheetRef.current?.present(); }}
+              style={{ padding: 4 }}
+            >
+              <Ionicons name="add" size={28} color={colors.textPrimary} />
+            </Pressable>
+          </View>
           <Pressable
             onPress={() => { haptic.light(); setPickerVisible(true); }}
             style={pillStyle}
@@ -75,14 +83,6 @@ export default function BudgetsScreen() {
                 onPress={() => router.push(`/budget/${item.budget.id}`)}
               />
             ))}
-            <Button
-              onPress={() => budgetSheetRef.current?.present()}
-              variant="secondary"
-              fullWidth
-              style={{ marginTop: Spacing.sm }}
-            >
-              + Add budget
-            </Button>
           </View>
         ) : (
           <EmptyState

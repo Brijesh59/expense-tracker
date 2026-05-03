@@ -1,9 +1,10 @@
 import React, { useState, useCallback, forwardRef, useRef, useImperativeHandle } from 'react';
-import { View, Text, TextInput, Pressable, Alert } from 'react-native';
+import { View, Text, Pressable, Alert } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetScrollView,
   BottomSheetBackdrop,
+  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -88,13 +89,13 @@ export const WorkspaceSheet = forwardRef<WorkspaceSheetRef>((_, ref) => {
   return (
     <BottomSheetModal
       ref={sheetRef}
-      snapPoints={mode === 'create' ? ['45%'] : ['45%']}
+      snapPoints={mode === 'create' ? ['30%'] : ['40%']}
       enablePanDownToClose
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: colors.surface }}
       handleIndicatorStyle={{ backgroundColor: colors.border }}
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
     >
       <BottomSheetScrollView
         contentContainerStyle={{ paddingBottom: Spacing.xl }}
@@ -172,21 +173,15 @@ export const WorkspaceSheet = forwardRef<WorkspaceSheetRef>((_, ref) => {
           </>
         ) : (
           <View style={{ paddingHorizontal: Spacing.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md, marginTop: Spacing.sm }}>
-              <Pressable onPress={() => setMode('picker')} style={{ marginRight: 10 }}>
-                <Caption color={colors.textSecondary}>← Back</Caption>
-              </Pressable>
-              <Text style={{ fontFamily: Fonts.semibold, fontSize: 16, color: colors.textPrimary }}>
-                New workspace
-              </Text>
-            </View>
+            <Text style={{ fontFamily: Fonts.semibold, fontSize: 16, color: colors.textPrimary, marginBottom: Spacing.md, marginTop: Spacing.sm }}>
+              New workspace
+            </Text>
 
-            <TextInput
+            <BottomSheetTextInput
               value={newName}
               onChangeText={setNewName}
               placeholder="e.g. Business"
               placeholderTextColor={colors.textSecondary}
-              autoFocus
               maxLength={24}
               style={{
                 backgroundColor: colors.surface2,

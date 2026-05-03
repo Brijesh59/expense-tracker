@@ -2,13 +2,13 @@ import React, { useState, useCallback, forwardRef, useRef, useImperativeHandle }
 import {
   View,
   Text,
-  TextInput,
   Pressable,
 } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetScrollView,
   BottomSheetBackdrop,
+  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -190,13 +190,13 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
         ref={sheetRef}
         snapPoints={['85%']}
         enablePanDownToClose
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
         backgroundStyle={{ backgroundColor: colors.surface, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
         handleIndicatorStyle={{ backgroundColor: colors.textMuted, width: 36 }}
         backdropComponent={(props) => (
           <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.6} />
         )}
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
       >
         <BottomSheetScrollView
           keyboardShouldPersistTaps="handled"
@@ -218,7 +218,7 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
               }}
             >
               <Text style={{ fontFamily: Fonts.bold, fontSize: 48, color: colors.textMuted, marginRight: 4 }}>₹</Text>
-              <TextInput
+              <BottomSheetTextInput
                 value={amount}
                 onChangeText={setAmount}
                 placeholder="0"
@@ -328,7 +328,7 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
                 marginBottom: Spacing.xl,
               }}
             >
-              <TextInput
+              <BottomSheetTextInput
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Add a note (optional)"
