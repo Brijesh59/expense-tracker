@@ -22,7 +22,7 @@ import { getMonthLabel } from '@/utils/dates';
 import { haptic } from '@/utils/haptics';
 import { useInsights } from '@/hooks/useInsights';
 import { useCategories } from '@/hooks/useCategories';
-import { formatAmount } from '@/utils/currency';
+import { useCurrency } from '@/hooks/useCurrency';
 import { emptyStates } from '@/constants/copy';
 import type { InsightCard } from '@/hooks/useInsights';
 
@@ -104,6 +104,7 @@ export default function InsightsScreen() {
     insightCards,
   } = useInsights({ month, year });
   const categories = useCategories();
+  const { format } = useCurrency();
 
   const pill = {
     flexDirection: 'row' as const,
@@ -151,7 +152,7 @@ export default function InsightsScreen() {
             <Card style={{ ...insightCardStyle, marginBottom: Spacing.md, flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
                 <Caption style={{ marginBottom: 4 }}>Total spent</Caption>
-                <H3 style={{ fontSize: 26 }}>{formatAmount(totalSpent)}</H3>
+                <H3 style={{ fontSize: 26 }}>{format(totalSpent)}</H3>
               </View>
               {prevTotalSpent > 0 && (
                 <View style={{ alignItems: 'flex-end' }}>

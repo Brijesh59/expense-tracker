@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { useCategories } from '@/hooks/useCategories';
 import { useLumaStore } from '@/db/store';
 import { haptic } from '@/utils/haptics';
+import { useCurrency } from '@/hooks/useCurrency';
 import type { Budget } from '@/db/types';
 
 export interface BudgetFormSheetRef {
@@ -30,6 +31,7 @@ interface BudgetFormSheetProps {
 export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetProps>(
   ({ month, year, existingCategoryIds = [], onSaved }, ref) => {
     const { colors } = useTheme();
+    const { symbol } = useCurrency();
     const sheetRef = useRef<BottomSheetModal>(null);
     const categories = useCategories();
     const addBudget = useLumaStore(s => s.addBudget);
@@ -171,7 +173,7 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
               marginBottom: Spacing.xl,
             }}
           >
-            <Text style={{ fontFamily: Fonts.bold, fontSize: 20, color: colors.textMuted, marginRight: 4 }}>₹</Text>
+            <Text style={{ fontFamily: Fonts.bold, fontSize: 20, color: colors.textMuted, marginRight: 4 }}>{symbol}</Text>
             <BottomSheetTextInput
               value={amount}
               onChangeText={setAmount}

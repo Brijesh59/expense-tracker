@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { View, Text, Pressable, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -9,8 +9,10 @@ import { BodyMedium, Caption } from '@/components/ui/Typography';
 import { useSettings } from '@/hooks/useSettings';
 import { useLumaStore } from '@/db/store';
 import { haptic } from '@/utils/haptics';
-import { CURRENCIES, type CurrencyCode } from '@/utils/currency';
+import { type CurrencyCode } from '@/utils/currency';
+import { useCurrency } from '@/hooks/useCurrency';
 import { WorkspaceSheet, WorkspaceSheetRef } from '@/components/sheets/WorkspaceSheet';
+import { CurrencyPickerSheet, CurrencyPickerSheetRef } from '@/components/sheets/CurrencyPickerSheet';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -22,26 +24,19 @@ const THEME_OPTIONS: { label: string; value: ThemeMode; icon: IoniconName }[] = 
 
 export default function SettingsScreen() {
   const { colors, mode: themeMode, isDark, setMode: setThemeMode } = useTheme();
-  const { getSetting, setSetting } = useSettings();
+  const { setSetting } = useSettings();
   const resetData = useLumaStore(s => s.resetData);
   const workspaces = useLumaStore(s => s.workspaces);
   const currentWorkspaceId = useLumaStore(s => s.currentWorkspaceId);
   const currentWorkspace = workspaces.find(w => w.id === currentWorkspaceId);
   const workspaceSheetRef = useRef<WorkspaceSheetRef>(null);
-  const [currency, setCurrency] = useState<CurrencyCode>('INR');
-  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
-
-  useEffect(() => {
-    const val = getSetting('currency');
-    if (val) setCurrency(val as CurrencyCode);
-  }, []);
+  const currencySheetRef = useRef<CurrencyPickerSheetRef>(null);
+  const { currency } = useCurrency();
 
   const handleCurrencyChange = useCallback(async (c: CurrencyCode) => {
-    setCurrency(c);
     await setSetting('currency', c);
-    setShowCurrencyPicker(false);
     haptic.success();
-  }, []);
+  }, [setSetting]);
 
   const handleThemeChange = (mode: ThemeMode) => {
     haptic.light();
@@ -101,53 +96,15 @@ export default function SettingsScreen() {
 
         {/* Currency */}
         <Pressable
-          onPress={() => setShowCurrencyPicker(v => !v)}
+          onPress={() => { haptic.light(); currencySheetRef.current?.present(); }}
           style={row}
         >
           <BodyMedium>Currency</BodyMedium>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Caption color={colors.primary}>{currency}</Caption>
-            <Ionicons
-              name={showCurrencyPicker ? 'chevron-up' : 'chevron-down'}
-              size={16}
-              color={colors.textSecondary}
-            />
+            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
           </View>
         </Pressable>
-
-        {showCurrencyPicker && (
-          <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
-            {CURRENCIES.map(c => (
-              <Pressable
-                key={c}
-                onPress={() => handleCurrencyChange(c)}
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  paddingHorizontal: Spacing.md,
-                  paddingVertical: 13,
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border,
-                  backgroundColor: c === currency ? `${colors.primary}14` : 'transparent',
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: c === currency ? Fonts.semibold : Fonts.regular,
-                    fontSize: 15,
-                    color: c === currency ? colors.primary : colors.textPrimary,
-                  }}
-                >
-                  {c}
-                </Text>
-                {c === currency && (
-                  <Text style={{ color: colors.primary, fontSize: 16 }}>✓</Text>
-                )}
-              </Pressable>
-            ))}
-          </View>
-        )}
 
         {/* Categories */}
         <Pressable
@@ -214,6 +171,11 @@ export default function SettingsScreen() {
       </ScrollView>
 
       <WorkspaceSheet ref={workspaceSheetRef} />
+      <CurrencyPickerSheet
+        ref={currencySheetRef}
+        selected={currency}
+        onSelect={handleCurrencyChange}
+      />
     </SafeAreaView>
   );
 }

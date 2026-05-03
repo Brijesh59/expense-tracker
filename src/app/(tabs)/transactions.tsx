@@ -20,7 +20,7 @@ import { MultiMonthPickerModal } from '@/components/ui/MultiMonthPickerModal';
 import { AddExpenseSheet, AddExpenseSheetRef } from '@/components/sheets/AddExpenseSheet';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
-import { formatAmount } from '@/utils/currency';
+import { useCurrency } from '@/hooks/useCurrency';
 import { getMonthLabel } from '@/utils/dates';
 import { emptyStates } from '@/constants/copy';
 import { haptic } from '@/utils/haptics';
@@ -35,6 +35,7 @@ function currentMonthEntry() {
 
 export default function TransactionsScreen() {
   const { colors } = useTheme();
+  const { format } = useCurrency();
   const insets = useSafeAreaInsets();
   const [selectedMonths, setSelectedMonths] = useState([currentMonthEntry()]);
   const [monthPickerVisible, setMonthPickerVisible] = useState(false);
@@ -173,7 +174,7 @@ export default function TransactionsScreen() {
         ListFooterComponent={
           sections.length > 0 ? (
             <View style={{ padding: Spacing.md, alignItems: 'center' }}>
-              <Caption>Total: {formatAmount(total)}</Caption>
+              <Caption>Total: {format(total)}</Caption>
             </View>
           ) : null
         }

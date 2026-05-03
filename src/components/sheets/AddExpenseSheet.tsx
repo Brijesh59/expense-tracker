@@ -19,6 +19,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useLumaStore } from '@/db/store';
 import { Ionicons } from '@expo/vector-icons';
 import { haptic } from '@/utils/haptics';
+import { useCurrency } from '@/hooks/useCurrency';
 import { computeNudge, NudgeResult } from '@/utils/nudgeEngine';
 import { getCurrentMonth } from '@/utils/dates';
 import type { Transaction } from '@/db/types';
@@ -39,6 +40,7 @@ const PAYMENT_METHODS = ['Cash', 'Card', 'UPI'];
 export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetProps>(
   ({ onExpenseSaved }, ref) => {
     const { colors } = useTheme();
+    const { symbol } = useCurrency();
     const sheetRef = useRef<BottomSheetModal>(null);
     const categories = useCategories();
     const addTransaction = useLumaStore(s => s.addTransaction);
@@ -217,7 +219,7 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
                 paddingBottom: Spacing.md,
               }}
             >
-              <Text style={{ fontFamily: Fonts.bold, fontSize: 48, color: colors.textMuted, marginRight: 4 }}>₹</Text>
+              <Text style={{ fontFamily: Fonts.bold, fontSize: 48, color: colors.textMuted, marginRight: 4 }}>{symbol}</Text>
               <BottomSheetTextInput
                 value={amount}
                 onChangeText={setAmount}

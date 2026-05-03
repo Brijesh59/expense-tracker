@@ -27,6 +27,7 @@ import { useAudioMeter } from '@/hooks/useAudioMeter';
 import { useCategories } from '@/hooks/useCategories';
 import { useLumaStore } from '@/db/store';
 import { haptic } from '@/utils/haptics';
+import { useCurrency } from '@/hooks/useCurrency';
 import { computeNudge, NudgeResult } from '@/utils/nudgeEngine';
 import { getCurrentMonth } from '@/utils/dates';
 import { processVoiceInput, VoiceResult, LogItem, BudgetItem } from '@/utils/parseVoiceExpense';
@@ -88,6 +89,7 @@ function ThinkingSparkle({ color, surfaceColor }: { color: string; surfaceColor:
 export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSheetProps>(
   ({ onExpenseSaved, onEditFirst }, ref) => {
     const sheetRef = useRef<BottomSheetModal>(null);
+    const { symbol } = useCurrency();
     const categories = useCategories();
     const addTransaction = useLumaStore(s => s.addTransaction);
     const setSetting = useLumaStore(s => s.setSetting);
@@ -340,9 +342,9 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
               </Pressable>
               <Text style={{ fontFamily: Fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>
                 Log expenses, set budgets, or ask about your spending{'\n'}
-                <Text style={{ color: colors.textMuted }}>"₹200 on coffee and ₹500 on groceries"</Text>
+                <Text style={{ color: colors.textMuted }}>"{symbol}200 on coffee and {symbol}500 on groceries"</Text>
                 {'\n'}
-                <Text style={{ color: colors.textMuted }}>"Set food budget to ₹5000"</Text>
+                <Text style={{ color: colors.textMuted }}>"Set food budget to {symbol}5000"</Text>
               </Text>
             </>
           )}
@@ -395,7 +397,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                 <>
                   {singleItem?.amount ? (
                     <Text style={{ fontFamily: Fonts.bold, fontSize: 52, color: colors.textPrimary, marginBottom: 6 }}>
-                      ₹{Number.isInteger(singleItem.amount) ? singleItem.amount : singleItem.amount!.toFixed(2)}
+                      {symbol}{Number.isInteger(singleItem.amount) ? singleItem.amount : singleItem.amount!.toFixed(2)}
                     </Text>
                   ) : (
                     <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: colors.red, marginBottom: 6 }}>
@@ -451,7 +453,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                           }}
                         >
                           <Text style={{ fontFamily: Fonts.semibold, fontSize: 15, color: colors.textPrimary, width: 72 }}>
-                            {item.amount ? `₹${item.amount}` : '—'}
+                            {item.amount ? `${symbol}${item.amount}` : '—'}
                           </Text>
                           <View style={{ flex: 1 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -529,7 +531,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                         </Text>
                       </View>
                       <Text style={{ fontFamily: Fonts.bold, fontSize: 16, color: colors.primary }}>
-                        {item.amount ? `₹${item.amount.toLocaleString('en-IN')}` : '—'}
+                        {item.amount ? `${symbol}${item.amount.toLocaleString('en-IN')}` : '—'}
                       </Text>
                       <Pressable onPress={() => removeBudget(idx)} style={{ padding: 8, marginLeft: 8 }}>
                         <Ionicons name="close" size={16} color={colors.textMuted} />

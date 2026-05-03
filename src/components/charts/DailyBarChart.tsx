@@ -5,6 +5,7 @@ import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { DailySpend } from '@/utils/analytics';
 import { getDayOfWeekLabel } from '@/utils/dates';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface DailyBarChartProps {
   data: DailySpend[];
@@ -15,15 +16,16 @@ const HEIGHT = 180;
 const BAR_WIDTH = 28;
 const PADDING = { top: 28, bottom: 36, left: 36, right: 12 };
 
-function fmt(v: number): string {
-  if (v === 0) return '';
-  if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
-  if (v >= 1000) return `₹${(v / 1000).toFixed(1)}k`;
-  return `₹${v}`;
-}
-
 export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
   const { colors } = useTheme();
+  const { symbol } = useCurrency();
+
+  function fmt(v: number): string {
+    if (v === 0) return '';
+    if (v >= 100000) return `${symbol}${(v / 100000).toFixed(1)}L`;
+    if (v >= 1000) return `${symbol}${(v / 1000).toFixed(1)}k`;
+    return `${symbol}${v}`;
+  }
 
   if (!data || data.length === 0) return null;
 

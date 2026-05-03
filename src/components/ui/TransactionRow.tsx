@@ -10,7 +10,7 @@ import Animated, {
 import { Fonts, Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { BodyMedium, Caption } from '@/components/ui/Typography';
-import { formatAmount } from '@/utils/currency';
+import { useCurrency } from '@/hooks/useCurrency';
 import { stagger } from '@/constants/animations';
 import type { Transaction } from '@/db/types';
 import type { Category } from '@/db/types';
@@ -24,6 +24,7 @@ interface TransactionRowProps {
 
 export function TransactionRow({ transaction, category, index, onPress }: TransactionRowProps) {
   const { colors } = useTheme();
+  const { format } = useCurrency();
   const translateX = useSharedValue(-20);
   const opacity = useSharedValue(0);
 
@@ -81,7 +82,7 @@ export function TransactionRow({ transaction, category, index, onPress }: Transa
             fontVariant: ['tabular-nums'],
           }}
         >
-          {formatAmount(transaction.amount)}
+          {format(transaction.amount)}
         </Text>
       </Pressable>
     </Animated.View>

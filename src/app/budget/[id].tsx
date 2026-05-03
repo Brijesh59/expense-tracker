@@ -20,7 +20,7 @@ import { useLumaStore } from '@/db/store';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { getLast7DaysSpend } from '@/utils/analytics';
-import { formatAmount, formatAmountFull } from '@/utils/currency';
+import { useCurrency } from '@/hooks/useCurrency';
 import { formatDateLabel } from '@/utils/dates';
 import { haptic } from '@/utils/haptics';
 import type { Transaction } from '@/db/types';
@@ -29,6 +29,7 @@ export default function BudgetDetailScreen() {
   const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const budgets = useLumaStore(s => s.budgets);
+  const { format, formatFull } = useCurrency();
   const categories = useCategories();
   const editSheetRef = useRef<AddExpenseSheetRef>(null);
   const budgetSheetRef = useRef<BudgetFormSheetRef>(null);
@@ -140,11 +141,11 @@ export default function BudgetDetailScreen() {
                   fontVariant: ['tabular-nums'],
                 }}
               >
-                {formatAmountFull(total)}
+                {formatFull(total)}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end', paddingBottom: 4 }}>
-              <Caption>of {formatAmountFull(budget.amount)}</Caption>
+              <Caption>of {formatFull(budget.amount)}</Caption>
             </View>
           </View>
 
@@ -163,8 +164,8 @@ export default function BudgetDetailScreen() {
               }}
             >
               {isOver
-                ? `${formatAmount(Math.abs(remaining))} over`
-                : `${formatAmount(remaining)} left`}
+                ? `${format(Math.abs(remaining))} over`
+                : `${format(remaining)} left`}
             </Text>
           </View>
         </View>
@@ -299,7 +300,7 @@ function TransactionRow({
           fontVariant: ['tabular-nums'],
         }}
       >
-        -{formatAmount(transaction.amount)}
+        -{format(transaction.amount)}
       </Text>
     </Pressable>
   );

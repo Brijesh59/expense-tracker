@@ -3,7 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
-import { formatAmount } from '@/utils/currency';
+import { useCurrency } from '@/hooks/useCurrency';
 import type { SpendByCategory } from '@/utils/analytics';
 import type { Category } from '@/db/types';
 
@@ -36,6 +36,7 @@ function slicePath(cx: number, cy: number, outerR: number, innerR: number, start
 
 export function DonutChart({ data, categories, totalSpent, size = 220 }: DonutChartProps) {
   const { colors, isDark } = useTheme();
+  const { format } = useCurrency();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const chartData = data
@@ -89,7 +90,7 @@ export function DonutChart({ data, categories, totalSpent, size = 220 }: DonutCh
           {selected ? (
             <>
               <Text style={{ fontFamily: Fonts.bold, fontSize: 18, color: colors.textPrimary }}>
-                {formatAmount(selected.value)}
+                {format(selected.value)}
               </Text>
               <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
                 {selected.label}
@@ -98,7 +99,7 @@ export function DonutChart({ data, categories, totalSpent, size = 220 }: DonutCh
           ) : (
             <>
               <Text style={{ fontFamily: Fonts.bold, fontSize: 20, color: colors.textPrimary }}>
-                {formatAmount(totalSpent)}
+                {format(totalSpent)}
               </Text>
               <Text style={{ fontFamily: Fonts.regular, fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
                 total

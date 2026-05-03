@@ -12,7 +12,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { BodyMedium, Caption } from '@/components/ui/Typography';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
-import { formatAmount } from '@/utils/currency';
+import { useCurrency } from '@/hooks/useCurrency';
 import { stagger } from '@/constants/animations';
 import type { BudgetWithSpend } from '@/hooks/useBudgets';
 import type { Category } from '@/db/types';
@@ -26,6 +26,7 @@ interface CategoryBudgetCardProps {
 
 export function CategoryBudgetCard({ item, category, index, onPress }: CategoryBudgetCardProps) {
   const { colors, isDark } = useTheme();
+  const { format } = useCurrency();
   const translateY = useSharedValue(20);
   const opacity = useSharedValue(0);
 
@@ -43,8 +44,8 @@ export function CategoryBudgetCard({ item, category, index, onPress }: CategoryB
 
   const isOver = item.ratio >= 1;
   const leftLabel = isOver
-    ? `Over by ${formatAmount(Math.abs(item.remaining))}`
-    : `${formatAmount(item.remaining)} left`;
+    ? `Over by ${format(Math.abs(item.remaining))}`
+    : `${format(item.remaining)} left`;
   const cardSurface = isDark ? colors.surface : '#FBFDFE';
   const cardBorder = isDark ? colors.border : 'rgba(60,110,145,0.12)';
   const iconSurface = isDark ? `${category.color}25` : `${category.color}18`;
@@ -68,7 +69,7 @@ export function CategoryBudgetCard({ item, category, index, onPress }: CategoryB
           </View>
           <View style={{ flex: 1 }}>
             <BodyMedium>{category.name}</BodyMedium>
-            <Caption>{formatAmount(item.spent)} / {formatAmount(item.budget.amount)}</Caption>
+            <Caption>{format(item.spent)} / {format(item.budget.amount)}</Caption>
           </View>
           <Caption
             color={isOver ? colors.red : colors.textMuted}

@@ -17,7 +17,7 @@ import { useBudgets } from '@/hooks/useBudgets';
 import { useCategories } from '@/hooks/useCategories';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useLumaStore } from '@/db/store';
-import { formatAmount } from '@/utils/currency';
+import { useCurrency } from '@/hooks/useCurrency';
 import { getMonthLabel } from '@/utils/dates';
 import { haptic } from '@/utils/haptics';
 import { emptyStates } from '@/constants/copy';
@@ -33,6 +33,7 @@ export default function OverviewScreen() {
   const workspaces = useLumaStore(s => s.workspaces);
   const currentWorkspaceId = useLumaStore(s => s.currentWorkspaceId);
   const { open: openAddExpense } = useAddExpense();
+  const { symbol, format } = useCurrency();
   const [pickerVisible, setPickerVisible] = useState(false);
   const editSheetRef = useRef<AddExpenseSheetRef>(null);
   const workspaceSheetRef = useRef<WorkspaceSheetRef>(null);
@@ -75,7 +76,7 @@ export default function OverviewScreen() {
                 {section.title}
               </Text>
               <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textSecondary }}>
-                {formatAmount(sectionTotal)}
+                {format(sectionTotal)}
               </Text>
             </View>
             {section.data.map((txn, txnIdx) => (
@@ -227,7 +228,7 @@ export default function OverviewScreen() {
                 marginRight: 3,
               }}
             >
-              ₹
+              {symbol}
             </Text>
             <Text
               style={{
@@ -273,8 +274,8 @@ export default function OverviewScreen() {
                 }}
               >
                 {remaining >= 0
-                  ? `₹${remaining.toLocaleString('en-IN', { maximumFractionDigits: 0 })} left`
-                  : `Over by ₹${Math.abs(remaining).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                  ? `${symbol}${remaining.toLocaleString('en-IN', { maximumFractionDigits: 0 })} left`
+                  : `Over by ${symbol}${Math.abs(remaining).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
               </Text>
             )}
           </View>
