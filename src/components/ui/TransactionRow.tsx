@@ -69,9 +69,9 @@ export function TransactionRow({ transaction, category, index, onPress }: Transa
           <BodyMedium numberOfLines={1}>
             {transaction.merchant || category?.name || 'Expense'}
           </BodyMedium>
-          <Caption numberOfLines={1}>
-            {category?.name}{transaction.notes ? ` · ${transaction.notes}` : ''}
-          </Caption>
+          {transaction.notes ? (
+            <Caption numberOfLines={1}>{transaction.notes}</Caption>
+          ) : null}
         </View>
 
         <Text

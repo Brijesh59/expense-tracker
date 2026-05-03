@@ -79,17 +79,9 @@ export default function BudgetDetailScreen() {
       >
         <Pressable
           onPress={() => { haptic.light(); router.back(); }}
-          style={{
-            width: 36,
-            height: 36,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: colors.surface,
-          }}
+          style={{ padding: 4 }}
         >
-          <Ionicons name="chevron-back" size={18} color={colors.textPrimary} />
+          <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </Pressable>
 
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -99,17 +91,9 @@ export default function BudgetDetailScreen() {
 
         <Pressable
           onPress={() => { haptic.light(); budgetSheetRef.current?.present(budget); }}
-          style={{
-            width: 36,
-            height: 36,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: colors.surface,
-          }}
+          style={{ padding: 4 }}
         >
-          <Ionicons name="ellipsis-vertical" size={16} color={colors.textSecondary} />
+          <Ionicons name="create-outline" size={22} color={colors.textSecondary} />
         </Pressable>
       </View>
 
@@ -261,6 +245,7 @@ function TransactionRow({
   onPress: () => void;
 }) {
   const { colors } = useTheme();
+  const { format } = useCurrency();
   return (
     <Pressable
       onPress={onPress}
@@ -290,7 +275,7 @@ function TransactionRow({
         <BodyMedium numberOfLines={1}>
           {transaction.merchant || category.name}
         </BodyMedium>
-        <Caption>{formatDateLabel(transaction.date)}</Caption>
+        <Caption>{formatDateLabel(transaction.date)}{transaction.notes ? ` · ${transaction.notes}` : ''}</Caption>
       </View>
       <Text
         style={{
