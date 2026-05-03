@@ -61,12 +61,12 @@ const SEED_BUDGETS: Budget[] = [
   { id: "budget-others", categoryId: "others", amount: 5000, month: currentMonth, year: currentYear, createdAt: now },
 ];
 
-// Seeds categories on first launch. Never runs again once any categories exist.
-export async function seedCategories(): Promise<Category[]> {
+// Seeds categories and budgets into the given workspace on first launch.
+export async function seedCategories(workspaceId: string): Promise<Category[]> {
   const seeded: Category[] = SEED_CATEGORIES.map(c => ({ ...c, isDefault: false }));
-  
-  await Storage.saveCategories(seeded);
-  await Storage.saveBudgets(SEED_BUDGETS);
+
+  await Storage.saveCategoriesFor(workspaceId, seeded);
+  await Storage.saveBudgetsFor(workspaceId, SEED_BUDGETS);
 
   return seeded;
 }

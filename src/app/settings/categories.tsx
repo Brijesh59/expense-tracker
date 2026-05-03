@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { H2, BodyMedium } from '@/components/ui/Typography';
@@ -25,21 +26,14 @@ export default function CategoriesScreen() {
         paddingBottom: Spacing.lg,
       }}>
         <Pressable onPress={() => router.back()} style={{ padding: 4, marginRight: Spacing.sm }}>
-          <Text style={{ fontSize: 22, color: colors.textSecondary }}>‹</Text>
+          <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </Pressable>
         <H2 style={{ flex: 1 }}>Categories</H2>
         <Pressable
           onPress={() => { haptic.light(); sheetRef.current?.present(); }}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            backgroundColor: `${colors.primary}20`,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          style={{ padding: 4 }}
         >
-          <Text style={{ fontSize: 22, color: colors.primary, lineHeight: 26 }}>+</Text>
+          <Ionicons name="add" size={26} color={colors.textPrimary} />
         </Pressable>
       </View>
 
@@ -73,7 +67,7 @@ export default function CategoriesScreen() {
             <View style={{ flex: 1 }}>
               <BodyMedium>{cat.name}</BodyMedium>
             </View>
-            <Text style={{ color: colors.textMuted, fontSize: 18 }}>›</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Pressable>
         ))}
 

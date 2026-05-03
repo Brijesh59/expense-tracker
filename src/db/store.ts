@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { seedCategories } from './seed';
 import { Storage } from './storage';
-import type { Budget, Category, Settings, Transaction } from './types';
+import type { Budget, Category, Settings, Transaction, Workspace } from './types';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -9,12 +9,19 @@ function generateId(): string {
 
 interface LumaStore {
   isLoaded: boolean;
+  workspaces: Workspace[];
+  currentWorkspaceId: string;
   transactions: Transaction[];
   budgets: Budget[];
   categories: Category[];
   settings: Settings;
 
   initialize: () => Promise<void>;
+
+  // Workspaces
+  addWorkspace: (data: { name: string }) => Promise<Workspace>;
+  switchWorkspace: (id: string) => Promise<void>;
+  deleteWorkspace: (id: string) => Promise<void>;
 
   // Transactions
   addTransaction: (data: Omit<Transaction, 'id' | 'createdAt'>) => Promise<Transaction>;
@@ -41,24 +48,64 @@ interface LumaStore {
 
 export const useLumaStore = create<LumaStore>((set, get) => ({
   isLoaded: false,
+  workspaces: [],
+  currentWorkspaceId: 'personal',
   transactions: [],
   budgets: [],
   categories: [],
   settings: {},
 
   initialize: async () => {
-    const isFirstLaunch = !(await Storage.hasLaunched());
-    const { transactions, budgets, categories, settings } = await Storage.loadAll();
+    const settings = await Storage.getSettings();
+    let workspaces = await Storage.getWorkspaces();
+    let currentWorkspaceId = await Storage.getCurrentWorkspaceId();
 
-    let finalCategories = categories;
-    let finalBudgets = budgets;
+    // First-time setup (new install or update from pre-workspace build)
+    if (workspaces.length === 0) {
+      const ws: Workspace = { id: 'personal', name: 'Personal', createdAt: Date.now() };
+      workspaces = [ws];
+      currentWorkspaceId = ws.id;
 
-    if (isFirstLaunch) {
-      finalCategories = await seedCategories();
-      finalBudgets = await Storage.getBudgets();
+      const migrated = await Storage.migrateToWorkspace(ws.id);
+      if (!migrated) {
+        await seedCategories(ws.id);
+      }
+
+      await Storage.saveWorkspaces(workspaces);
+      await Storage.saveCurrentWorkspaceId(ws.id);
     }
 
-    set({ transactions, budgets: finalBudgets, categories: finalCategories, settings, isLoaded: true });
+    if (!currentWorkspaceId) currentWorkspaceId = workspaces[0].id;
+
+    const { transactions, budgets, categories } = await Storage.loadAllFor(currentWorkspaceId);
+    set({ workspaces, currentWorkspaceId, transactions, budgets, categories, settings, isLoaded: true });
+  },
+
+  // ── Workspaces ────────────────────────────────────────────────────────────
+
+  addWorkspace: async (data) => {
+    const ws: Workspace = { ...data, id: generateId(), createdAt: Date.now() };
+    const workspaces = [...get().workspaces, ws];
+    await Storage.saveWorkspaces(workspaces);
+    set({ workspaces });
+    return ws;
+  },
+
+  switchWorkspace: async (id) => {
+    await Storage.saveCurrentWorkspaceId(id);
+    const { transactions, budgets, categories } = await Storage.loadAllFor(id);
+    set({ currentWorkspaceId: id, transactions, budgets, categories });
+  },
+
+  deleteWorkspace: async (id) => {
+    const workspaces = get().workspaces;
+    if (workspaces.length <= 1) return;
+    const next = workspaces.filter(w => w.id !== id);
+    await Storage.saveWorkspaces(next);
+    set({ workspaces: next });
+    if (get().currentWorkspaceId === id) {
+      await get().switchWorkspace(next[0].id);
+    }
   },
 
   // ── Transactions ──────────────────────────────────────────────────────────
@@ -67,7 +114,7 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
     const tx: Transaction = { ...data, id: generateId(), createdAt: Date.now() };
     const transactions = [...get().transactions, tx];
     set({ transactions });
-    await Storage.saveTransactions(transactions);
+    await Storage.saveTransactionsFor(get().currentWorkspaceId, transactions);
     return tx;
   },
 
@@ -76,13 +123,13 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
       t.id === id ? { ...t, ...updates } : t
     );
     set({ transactions });
-    await Storage.saveTransactions(transactions);
+    await Storage.saveTransactionsFor(get().currentWorkspaceId, transactions);
   },
 
   deleteTransaction: async (id) => {
     const transactions = get().transactions.filter(t => t.id !== id);
     set({ transactions });
-    await Storage.saveTransactions(transactions);
+    await Storage.saveTransactionsFor(get().currentWorkspaceId, transactions);
   },
 
   // ── Budgets ───────────────────────────────────────────────────────────────
@@ -91,7 +138,7 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
     const budget: Budget = { ...data, id: generateId(), createdAt: Date.now() };
     const budgets = [...get().budgets, budget];
     set({ budgets });
-    await Storage.saveBudgets(budgets);
+    await Storage.saveBudgetsFor(get().currentWorkspaceId, budgets);
     return budget;
   },
 
@@ -100,13 +147,13 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
       b.id === id ? { ...b, ...updates } : b
     );
     set({ budgets });
-    await Storage.saveBudgets(budgets);
+    await Storage.saveBudgetsFor(get().currentWorkspaceId, budgets);
   },
 
   deleteBudget: async (id) => {
     const budgets = get().budgets.filter(b => b.id !== id);
     set({ budgets });
-    await Storage.saveBudgets(budgets);
+    await Storage.saveBudgetsFor(get().currentWorkspaceId, budgets);
   },
 
   // ── Categories ────────────────────────────────────────────────────────────
@@ -115,7 +162,7 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
     const category: Category = { ...data, id: generateId(), isDefault: false };
     const categories = [...get().categories, category];
     set({ categories });
-    await Storage.saveCategories(categories);
+    await Storage.saveCategoriesFor(get().currentWorkspaceId, categories);
     return category;
   },
 
@@ -124,13 +171,13 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
       c.id === id ? { ...c, ...updates } : c
     );
     set({ categories });
-    await Storage.saveCategories(categories);
+    await Storage.saveCategoriesFor(get().currentWorkspaceId, categories);
   },
 
   deleteCategory: async (id) => {
     const categories = get().categories.filter(c => c.id !== id);
     set({ categories });
-    await Storage.saveCategories(categories);
+    await Storage.saveCategoriesFor(get().currentWorkspaceId, categories);
   },
 
   // ── Settings ──────────────────────────────────────────────────────────────
@@ -147,6 +194,6 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
 
   resetData: async () => {
     await Storage.clearAll();
-    set({ transactions: [], budgets: []});
+    set({ transactions: [], budgets: [] });
   },
 }));

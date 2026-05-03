@@ -11,6 +11,7 @@ import { MonthPickerModal } from '@/components/ui/MonthPickerModal';
 import { BudgetBarChart } from '@/components/overview/BudgetBarChart';
 import { TransactionRow } from '@/components/ui/TransactionRow';
 import { AddExpenseSheet, AddExpenseSheetRef } from '@/components/sheets/AddExpenseSheet';
+import { WorkspaceSheet, WorkspaceSheetRef } from '@/components/sheets/WorkspaceSheet';
 import { useMonthStore } from '@/store/monthStore';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useCategories } from '@/hooks/useCategories';
@@ -29,9 +30,14 @@ export default function OverviewScreen() {
   const categories = useCategories();
   const { sections } = useTransactions({ month, year });
   const allBudgets = useLumaStore(s => s.budgets);
+  const workspaces = useLumaStore(s => s.workspaces);
+  const currentWorkspaceId = useLumaStore(s => s.currentWorkspaceId);
   const { open: openAddExpense } = useAddExpense();
   const [pickerVisible, setPickerVisible] = useState(false);
   const editSheetRef = useRef<AddExpenseSheetRef>(null);
+  const workspaceSheetRef = useRef<WorkspaceSheetRef>(null);
+
+  const currentWorkspace = workspaces.find(w => w.id === currentWorkspaceId);
 
   const getCategoryById = useCallback(
     (id: string) => categories.find(c => c.id === id),
@@ -93,17 +99,37 @@ export default function OverviewScreen() {
         contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header icons */}
+        {/* Header */}
         <View
           style={{
             paddingHorizontal: Spacing.md,
             paddingTop: Spacing.sm,
             flexDirection: 'row',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: 8,
           }}
         >
+          {/* Workspace pill */}
+          <Pressable
+            onPress={() => { haptic.light(); workspaceSheetRef.current?.present(); }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              backgroundColor: colors.surface2,
+              borderRadius: Radius.full,
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+            }}
+          >
+            <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textPrimary }}>
+              {currentWorkspace?.name ?? 'Personal'}
+            </Text>
+            <Ionicons name="chevron-down" size={11} color={colors.textSecondary} />
+          </Pressable>
+
+          {/* Right icons */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {/* Budget icon with circular progress ring */}
           {(() => {
             const RING = 44;
@@ -186,6 +212,7 @@ export default function OverviewScreen() {
               </Pressable>
             </View>
           ))}
+          </View>
         </View>
 
         {/* Big spent total — ₹ before the number */}
@@ -291,6 +318,7 @@ export default function OverviewScreen() {
         onClose={() => setPickerVisible(false)}
       />
       <AddExpenseSheet ref={editSheetRef} />
+      <WorkspaceSheet ref={workspaceSheetRef} />
     </SafeAreaView>
   );
 }

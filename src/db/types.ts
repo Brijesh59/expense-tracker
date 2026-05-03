@@ -27,3 +27,9 @@ export interface Category {
 }
 
 export type Settings = Record<string, string>;
+
+export interface Workspace {
+  id: string;
+  name: string;
+  createdAt: number;
+}

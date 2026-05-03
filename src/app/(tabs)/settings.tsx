@@ -1,26 +1,33 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Pressable, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, Pressable, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme, type ThemeMode } from '@/contexts/ThemeContext';
-import { H2, H3, BodyMedium, Caption } from '@/components/ui/Typography';
-import { Card } from '@/components/ui/Card';
+import { BodyMedium, Caption } from '@/components/ui/Typography';
 import { useSettings } from '@/hooks/useSettings';
 import { useLumaStore } from '@/db/store';
 import { haptic } from '@/utils/haptics';
 import { CURRENCIES, type CurrencyCode } from '@/utils/currency';
+import { WorkspaceSheet, WorkspaceSheetRef } from '@/components/sheets/WorkspaceSheet';
 
-const THEME_OPTIONS: { label: string; value: ThemeMode; icon: string }[] = [
-  { label: 'System', value: 'system', icon: '⚙️' },
-  { label: 'Light', value: 'light', icon: '☀️' },
-  { label: 'Dark', value: 'dark', icon: '🌙' },
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const THEME_OPTIONS: { label: string; value: ThemeMode; icon: IoniconName }[] = [
+  { label: 'System', value: 'system', icon: 'contrast-outline' },
+  { label: 'Light',  value: 'light',  icon: 'sunny-outline' },
+  { label: 'Dark',   value: 'dark',   icon: 'moon-outline' },
 ];
 
 export default function SettingsScreen() {
   const { colors, mode: themeMode, isDark, setMode: setThemeMode } = useTheme();
   const { getSetting, setSetting } = useSettings();
   const resetData = useLumaStore(s => s.resetData);
+  const workspaces = useLumaStore(s => s.workspaces);
+  const currentWorkspaceId = useLumaStore(s => s.currentWorkspaceId);
+  const currentWorkspace = workspaces.find(w => w.id === currentWorkspaceId);
+  const workspaceSheetRef = useRef<WorkspaceSheetRef>(null);
   const [currency, setCurrency] = useState<CurrencyCode>('INR');
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
@@ -43,12 +50,12 @@ export default function SettingsScreen() {
 
   const handleReset = useCallback(() => {
     Alert.alert(
-      'Reset data',
-      'This will delete all transactions and budgets. Categories will remain.',
+      'Delete all data?',
+      'This will permanently delete all your transactions and budgets. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reset',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             haptic.warning();
@@ -59,72 +66,101 @@ export default function SettingsScreen() {
     );
   }, [resetData]);
 
-  const settingCardStyle = {
-    backgroundColor: isDark ? colors.surface : '#FBFDFE',
-    borderColor: isDark ? colors.border : 'rgba(60,110,145,0.12)',
+  const row = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   };
 
-  const optionSurface = isDark ? colors.surface2 : '#F2F6F9';
-  const selectedOptionSurface = isDark ? `${colors.primary}18` : '#FFF8D7';
+  const selectedThemeSurface = isDark ? `${colors.primary}18` : '#FFF8D7';
+  const unselectedThemeSurface = isDark ? colors.surface2 : '#F2F6F9';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.lg, paddingBottom: Spacing.md }}>
-        <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: colors.textPrimary }}>Settings</Text>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Title */}
+        <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.lg, paddingBottom: Spacing.md }}>
+          <Text style={{ fontSize: 34, fontFamily: Fonts.bold, color: colors.textPrimary }}>Settings</Text>
+        </View>
 
-      <View style={{ paddingHorizontal: Spacing.md, gap: Spacing.sm }}>
+        {/* Workspace */}
+        <Pressable
+          onPress={() => { haptic.light(); workspaceSheetRef.current?.present(); }}
+          style={row}
+        >
+          <BodyMedium>Workspace</BodyMedium>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Caption color={colors.primary}>{currentWorkspace?.name ?? 'Personal'}</Caption>
+            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+          </View>
+        </Pressable>
+
         {/* Currency */}
-        <Card style={settingCardStyle}>
-          <Pressable
-            onPress={() => setShowCurrencyPicker(!showCurrencyPicker)}
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-          >
-            <BodyMedium>Currency</BodyMedium>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Caption color={colors.primary}>{currency}</Caption>
-              <Caption>{showCurrencyPicker ? '▲' : '▼'}</Caption>
-            </View>
-          </Pressable>
+        <Pressable
+          onPress={() => setShowCurrencyPicker(v => !v)}
+          style={row}
+        >
+          <BodyMedium>Currency</BodyMedium>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Caption color={colors.primary}>{currency}</Caption>
+            <Ionicons
+              name={showCurrencyPicker ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={colors.textSecondary}
+            />
+          </View>
+        </Pressable>
 
-          {showCurrencyPicker && (
-            <View
-              style={{
-                marginTop: Spacing.md,
-                borderTopWidth: 1,
-                borderTopColor: colors.border,
-                paddingTop: Spacing.md,
-                gap: 8,
-              }}
-            >
-              {CURRENCIES.map(c => (
-                <Pressable
-                  key={c}
-                  onPress={() => handleCurrencyChange(c)}
-                  style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}
+        {showCurrencyPicker && (
+          <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            {CURRENCIES.map(c => (
+              <Pressable
+                key={c}
+                onPress={() => handleCurrencyChange(c)}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingHorizontal: Spacing.md,
+                  paddingVertical: 13,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                  backgroundColor: c === currency ? `${colors.primary}14` : 'transparent',
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: c === currency ? Fonts.semibold : Fonts.regular,
+                    fontSize: 15,
+                    color: c === currency ? colors.primary : colors.textPrimary,
+                  }}
                 >
-                  <BodyMedium color={c === currency ? colors.primary : colors.textPrimary}>{c}</BodyMedium>
-                  {c === currency && <Caption color={colors.primary}>✓</Caption>}
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </Card>
+                  {c}
+                </Text>
+                {c === currency && (
+                  <Text style={{ color: colors.primary, fontSize: 16 }}>✓</Text>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        )}
 
         {/* Categories */}
-        <Card style={settingCardStyle}>
-          <Pressable
-            onPress={() => router.push('/settings/categories')}
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-          >
-            <BodyMedium>Categories</BodyMedium>
-            <Caption>›</Caption>
-          </Pressable>
-        </Card>
+        <Pressable
+          onPress={() => router.push('/settings/categories')}
+          style={row}
+        >
+          <BodyMedium>Categories</BodyMedium>
+          <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+        </Pressable>
 
         {/* Theme */}
-        <Card style={settingCardStyle}>
-          <BodyMedium style={{ marginBottom: Spacing.sm }}>Theme</BodyMedium>
+        <View style={{ paddingHorizontal: Spacing.md, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <BodyMedium style={{ marginBottom: 12 }}>Theme</BodyMedium>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {THEME_OPTIONS.map(opt => {
               const isSelected = themeMode === opt.value;
@@ -139,12 +175,16 @@ export default function SettingsScreen() {
                     borderRadius: Radius.md,
                     borderWidth: 1.5,
                     borderColor: isSelected ? colors.primary : colors.border,
-                    backgroundColor: isSelected ? selectedOptionSurface : optionSurface,
+                    backgroundColor: isSelected ? selectedThemeSurface : unselectedThemeSurface,
                     alignItems: 'center',
                     gap: 4,
                   }}
                 >
-                  <Text style={{ fontSize: 18 }}>{opt.icon}</Text>
+                  <Ionicons
+                    name={opt.icon}
+                    size={18}
+                    color={isSelected ? colors.primary : colors.textSecondary}
+                  />
                   <Text
                     style={{
                       fontFamily: isSelected ? Fonts.semibold : Fonts.regular,
@@ -158,23 +198,22 @@ export default function SettingsScreen() {
               );
             })}
           </View>
-        </Card>
+        </View>
 
         {/* Reset */}
-        <Card style={settingCardStyle}>
-          <Pressable onPress={handleReset}>
-            <BodyMedium color={colors.red}>Reset all data</BodyMedium>
-            <Caption style={{ marginTop: 4 }}>Deletes transactions and budgets</Caption>
-          </Pressable>
-        </Card>
+        <Pressable onPress={handleReset} style={row}>
+          <BodyMedium color={colors.red}>Reset all data</BodyMedium>
+        </Pressable>
 
         {/* About */}
-        <Card style={settingCardStyle}>
+        <View style={{ paddingHorizontal: Spacing.md, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <BodyMedium>About Luma</BodyMedium>
           <Caption style={{ marginTop: 4 }}>Version 1.0.0</Caption>
           <Caption style={{ marginTop: 2 }}>Clarity over complexity.</Caption>
-        </Card>
-      </View>
+        </View>
+      </ScrollView>
+
+      <WorkspaceSheet ref={workspaceSheetRef} />
     </SafeAreaView>
   );
 }
