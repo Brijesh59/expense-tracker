@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
+import { signalReady } from '@/utils/splash';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
@@ -17,6 +18,9 @@ import { onboarding } from '@/constants/copy';
 
 export default function WelcomeScreen() {
   const { colors } = useTheme();
+
+  useEffect(() => { signalReady('onboarding'); }, []);
+
   const mascotY = useSharedValue(30);
   const mascotOpacity = useSharedValue(0);
   const headlineY = useSharedValue(20);

@@ -179,7 +179,7 @@ export default function BudgetDetailScreen() {
             >
               Spending History
             </Text>
-            <DailyBarChart data={dailySpend} width={320} />
+            <DailyBarChart data={dailySpend} width={320} barColor={category.color} />
           </View>
         )}
 

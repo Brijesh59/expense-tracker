@@ -72,7 +72,7 @@ export default function InsightRevealScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg }}>
-        <H1 style={{ marginBottom: Spacing.xl }}>You're off to a good start 👍</H1>
+        <H1 style={{ marginBottom: Spacing.xl }}>You're off to a good start</H1>
 
         {/* Nudge card */}
         <Animated.View style={cardStyle}>

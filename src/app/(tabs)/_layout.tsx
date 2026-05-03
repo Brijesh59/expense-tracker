@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useRef, useState } from 'react';
+import React, { createContext, useContext, useRef, useState, useEffect } from 'react';
+import { signalReady } from '@/utils/splash';
 import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { BottomBar } from '@/components/ui/BottomBar';
@@ -18,6 +19,8 @@ export default function TabsLayout() {
   const sheetRef = useRef<AddExpenseSheetRef>(null);
   const voiceSheetRef = useRef<VoiceExpenseSheetRef>(null);
   const [nudge, setNudge] = useState<NudgeResult | null>(null);
+
+  useEffect(() => { signalReady('tabs'); }, []);
 
   const openSheet = (catId?: string) => {
     sheetRef.current?.present(catId);

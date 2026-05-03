@@ -44,6 +44,7 @@ interface LumaStore {
 
   // Reset
   resetData: () => Promise<void>;
+  resetAll: () => Promise<void>;
 }
 
 export const useLumaStore = create<LumaStore>((set, get) => ({
@@ -198,5 +199,18 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
   resetData: async () => {
     await Storage.clearAll();
     set({ transactions: [], budgets: [] });
+  },
+
+  resetAll: async () => {
+    await Storage.resetApp();
+    set({
+      isLoaded: false,
+      workspaces: [],
+      currentWorkspaceId: 'personal',
+      transactions: [],
+      budgets: [],
+      categories: [],
+      settings: {},
+    });
   },
 }));

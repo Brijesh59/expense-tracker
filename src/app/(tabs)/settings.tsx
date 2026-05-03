@@ -9,6 +9,7 @@ import { BodyMedium, Caption } from '@/components/ui/Typography';
 import { useSettings } from '@/hooks/useSettings';
 import { useLumaStore } from '@/db/store';
 import { haptic } from '@/utils/haptics';
+import { setIntendedDestination } from '@/utils/splash';
 import { type CurrencyCode } from '@/utils/currency';
 import { useCurrency } from '@/hooks/useCurrency';
 import { WorkspaceSheet, WorkspaceSheetRef } from '@/components/sheets/WorkspaceSheet';
@@ -26,6 +27,7 @@ export default function SettingsScreen() {
   const { colors, mode: themeMode, isDark, setMode: setThemeMode } = useTheme();
   const { setSetting } = useSettings();
   const resetData = useLumaStore(s => s.resetData);
+  const resetAll = useLumaStore(s => s.resetAll);
   const workspaces = useLumaStore(s => s.workspaces);
   const currentWorkspaceId = useLumaStore(s => s.currentWorkspaceId);
   const currentWorkspace = workspaces.find(w => w.id === currentWorkspaceId);
@@ -37,6 +39,26 @@ export default function SettingsScreen() {
     await setSetting('currency', c);
     haptic.success();
   }, [setSetting]);
+
+  const handleResetApp = useCallback(() => {
+    Alert.alert(
+      'Reset app?',
+      'This will wipe all data and restart the onboarding flow. Use this for testing only.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            haptic.warning();
+            await resetAll();
+            setIntendedDestination('onboarding');
+            router.replace('/onboarding/welcome');
+          },
+        },
+      ]
+    );
+  }, [resetAll]);
 
   const handleThemeChange = (mode: ThemeMode) => {
     haptic.light();
@@ -168,6 +190,19 @@ export default function SettingsScreen() {
           <Caption style={{ marginTop: 4 }}>Version 1.0.0</Caption>
           <Caption style={{ marginTop: 2 }}>Clarity over complexity.</Caption>
         </View>
+
+        {/* Developer */}
+        <View style={{ paddingHorizontal: Spacing.md, paddingTop: 24, paddingBottom: 8 }}>
+          <Text style={{ fontFamily: Fonts.semibold, fontSize: 11, color: colors.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>
+            Developer
+          </Text>
+        </View>
+        <Pressable onPress={handleResetApp} style={row}>
+          <View>
+            <BodyMedium color={colors.red}>Reset app</BodyMedium>
+            <Caption style={{ marginTop: 2 }}>Wipes all data and restarts onboarding</Caption>
+          </View>
+        </Pressable>
       </ScrollView>
 
       <WorkspaceSheet ref={workspaceSheetRef} />

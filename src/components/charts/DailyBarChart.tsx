@@ -10,13 +10,14 @@ import { useCurrency } from '@/hooks/useCurrency';
 interface DailyBarChartProps {
   data: DailySpend[];
   width?: number;
+  barColor?: string;
 }
 
 const HEIGHT = 180;
 const BAR_WIDTH = 28;
 const PADDING = { top: 28, bottom: 36, left: 36, right: 12 };
 
-export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
+export function DailyBarChart({ data, width = 320, barColor }: DailyBarChartProps) {
   const { colors } = useTheme();
   const { symbol } = useCurrency();
 
@@ -59,6 +60,7 @@ export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
           const x = PADDING.left + i * step + (step - BAR_WIDTH) / 2;
           const y = PADDING.top + chartH - barH;
           const isMax = d.total === maxVal && d.total > 0;
+          const fillColor = barColor ?? (isMax ? colors.red : colors.primary);
           const label = getDayOfWeekLabel(d.date);
           const labelX = PADDING.left + i * step + step / 2;
 
@@ -71,7 +73,7 @@ export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
                 height={barH}
                 rx={5}
                 ry={5}
-                fill={isMax ? colors.red : colors.primary}
+                fill={fillColor}
                 opacity={0.85}
               />
               {d.total > 0 && (
@@ -79,7 +81,7 @@ export function DailyBarChart({ data, width = 320 }: DailyBarChartProps) {
                   x={labelX}
                   y={y - 5}
                   fontSize={10}
-                  fill={isMax ? colors.red : colors.textSecondary}
+                  fill={barColor ? colors.textSecondary : isMax ? colors.red : colors.textSecondary}
                   textAnchor="middle"
                   fontFamily={Fonts.medium}
                 >

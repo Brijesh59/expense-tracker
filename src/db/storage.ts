@@ -130,6 +130,10 @@ export const Storage = {
     }
   },
 
+  async resetApp(): Promise<void> {
+    await AsyncStorage.clear();
+  },
+
   // ── Legacy flat getters (kept for migration path only) ────────────────────
 
   async getTransactions(): Promise<Transaction[]> {

@@ -16,9 +16,11 @@ import { getCurrentMonth } from '@/utils/dates';
 export default function FirstBudgetScreen() {
   const { colors } = useTheme();
   const categories = useCategories();
+  const budgets = useLumaStore(s => s.budgets);
   const addBudget = useLumaStore(s => s.addBudget);
+  const updateBudget = useLumaStore(s => s.updateBudget);
   const setSetting = useLumaStore(s => s.setSetting);
-  const [selectedCategoryId, setSelectedCategoryId] = useState('food');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -31,14 +33,25 @@ export default function FirstBudgetScreen() {
   };
 
   const handleSetBudget = async () => {
-    if (!amount || parseFloat(amount) <= 0 || saving) return;
+    if (!selectedCategoryId || !amount || parseFloat(amount) <= 0 || saving) return;
     setSaving(true);
     haptic.heavy();
 
     const { month, year } = getCurrentMonth();
+    const budgetAmount = parseFloat(amount);
+    const existingBudget = budgets.find(
+      budget =>
+        budget.categoryId === selectedCategoryId &&
+        budget.month === month &&
+        budget.year === year
+    );
 
     try {
-      await addBudget({ categoryId: selectedCategoryId, amount: parseFloat(amount), month, year });
+      if (existingBudget) {
+        await updateBudget(existingBudget.id, { amount: budgetAmount });
+      } else {
+        await addBudget({ categoryId: selectedCategoryId, amount: budgetAmount, month, year });
+      }
       await setSetting('last_category_id', selectedCategoryId);
       router.push({
         pathname: '/onboarding/first-expense',
@@ -136,7 +149,7 @@ export default function FirstBudgetScreen() {
 
         <Button
           onPress={handleSetBudget}
-          disabled={!amount || parseFloat(amount) <= 0}
+          disabled={!selectedCategoryId || !amount || parseFloat(amount) <= 0}
           loading={saving}
           fullWidth
           size="lg"
