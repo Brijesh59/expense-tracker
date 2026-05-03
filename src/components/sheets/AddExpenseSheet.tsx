@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  ScrollView,
   Pressable,
 } from 'react-native';
 import {
@@ -18,6 +17,7 @@ import { H3, Caption } from '@/components/ui/Typography';
 import { CategoryChip } from '@/components/ui/CategoryChip';
 import { useCategories } from '@/hooks/useCategories';
 import { useLumaStore } from '@/db/store';
+import { Ionicons } from '@expo/vector-icons';
 import { haptic } from '@/utils/haptics';
 import { computeNudge, NudgeResult } from '@/utils/nudgeEngine';
 import { getCurrentMonth } from '@/utils/dates';
@@ -25,7 +25,7 @@ import type { Transaction } from '@/db/types';
 
 export interface AddExpenseSheetRef {
   present: (prefilledCategoryId?: string) => void;
-  presentPrefilled: (prefill: { amount?: string; categoryId?: string; merchant?: string; paymentMethod?: string | null; notes?: string }) => void;
+  presentPrefilled: (prefill: { amount?: string; categoryId?: string; paymentMethod?: string | null; notes?: string }) => void;
   presentEdit: (transaction: Transaction) => void;
   dismiss: () => void;
 }
@@ -51,16 +51,17 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
 
     const [amount, setAmount] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string>('food');
-    const [merchant, setMerchant] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('UPI');
     const [notes, setNotes] = useState('');
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+    const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
 
     useImperativeHandle(ref, () => ({
       present: (prefilledCategoryId?: string) => {
         setEditingTransaction(null);
+        setCategoryPickerOpen(false);
         if (prefilledCategoryId) {
           setSelectedCategoryId(prefilledCategoryId);
         } else {
@@ -70,15 +71,14 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
         const lastPm = getSetting('last_payment_method');
         if (lastPm) setPaymentMethod(lastPm);
         setAmount('');
-        setMerchant('');
         setNotes('');
         sheetRef.current?.present();
       },
-      presentPrefilled: ({ amount: a, categoryId: cId, merchant: m, paymentMethod: pm, notes: n } = {}) => {
+      presentPrefilled: ({ amount: a, categoryId: cId, paymentMethod: pm, notes: n } = {}) => {
         setEditingTransaction(null);
+        setCategoryPickerOpen(false);
         setAmount(a ?? '');
         if (cId) setSelectedCategoryId(cId);
-        setMerchant(m ?? '');
         setNotes(n ?? '');
         if (pm && PAYMENT_METHODS.includes(pm)) {
           setPaymentMethod(pm);
@@ -90,9 +90,9 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
       },
       presentEdit: (transaction: Transaction) => {
         setEditingTransaction(transaction);
+        setCategoryPickerOpen(false);
         setAmount(String(transaction.amount));
         setSelectedCategoryId(transaction.categoryId);
-        setMerchant(transaction.merchant);
         setPaymentMethod(transaction.paymentMethod);
         setNotes(transaction.notes);
         sheetRef.current?.present();
@@ -113,7 +113,6 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
           await updateTransaction(editingTransaction.id, {
             amount: parsedAmount,
             categoryId: selectedCategoryId,
-            merchant: merchant.trim(),
             paymentMethod,
             notes: notes.trim(),
           });
@@ -124,7 +123,7 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
           await addTransaction({
             amount: parsedAmount,
             categoryId: selectedCategoryId,
-            merchant: merchant.trim(),
+            merchant: '',
             date: now,
             paymentMethod,
             notes: notes.trim(),
@@ -170,7 +169,7 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
       } finally {
         setSaving(false);
       }
-    }, [amount, selectedCategoryId, merchant, paymentMethod, notes, saving, editingTransaction, categories, allTransactions, allBudgets]);
+    }, [amount, selectedCategoryId, paymentMethod, notes, saving, editingTransaction, categories, allTransactions, allBudgets]);
 
     const handleDelete = useCallback(async () => {
       if (!editingTransaction || deleting) return;
@@ -237,44 +236,58 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
             </View>
 
             <Caption style={{ marginBottom: 10 }}>Category</Caption>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginBottom: Spacing.lg, marginHorizontal: -Spacing.md }}
-              contentContainerStyle={{ paddingHorizontal: Spacing.md }}
-            >
-              {categories.map(cat => (
-                <CategoryChip
-                  key={cat.id}
-                  icon={cat.icon}
-                  name={cat.name}
-                  color={cat.color}
-                  selected={selectedCategoryId === cat.id}
-                  onPress={() => setSelectedCategoryId(cat.id)}
-                />
-              ))}
-            </ScrollView>
+            {(() => {
+              const selectedCategory = categories.find(c => c.id === selectedCategoryId);
+              return (
+                <>
+                  <Pressable
+                    onPress={() => { setCategoryPickerOpen(v => !v); haptic.light(); }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingHorizontal: Spacing.md,
+                      paddingVertical: 12,
+                      borderWidth: 1.5,
+                      borderColor: categoryPickerOpen ? colors.primary : colors.border,
+                      backgroundColor: colors.input,
+                      marginBottom: categoryPickerOpen ? 8 : Spacing.lg,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={{ fontSize: 20 }}>{selectedCategory?.icon}</Text>
+                      <Text style={{ fontFamily: Fonts.semibold, fontSize: 14, color: selectedCategory?.color }}>
+                        {selectedCategory?.name}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name={categoryPickerOpen ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color={colors.textMuted}
+                    />
+                  </Pressable>
 
-            <View
-              style={{
-                backgroundColor: colors.input,
-                borderRadius: Radius.sm,
-                borderWidth: 1,
-                borderColor: colors.inputBorder,
-                paddingHorizontal: Spacing.md,
-                paddingVertical: 12,
-                marginBottom: Spacing.md,
-              }}
-            >
-              <TextInput
-                value={merchant}
-                onChangeText={setMerchant}
-                placeholder="Where did you spend? (optional)"
-                placeholderTextColor={colors.textMuted}
-                returnKeyType="done"
-                style={{ fontFamily: Fonts.regular, fontSize: 15, color: colors.textPrimary }}
-              />
-            </View>
+                  {categoryPickerOpen && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 8, marginBottom: Spacing.lg }}>
+                      {categories.map(cat => (
+                        <CategoryChip
+                          key={cat.id}
+                          icon={cat.icon}
+                          name={cat.name}
+                          color={cat.color}
+                          selected={selectedCategoryId === cat.id}
+                          size="sm"
+                          onPress={() => {
+                            setSelectedCategoryId(cat.id);
+                            setCategoryPickerOpen(false);
+                          }}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </>
+              );
+            })()}
 
             <Caption style={{ marginBottom: 10 }}>Payment</Caption>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: Spacing.lg }}>

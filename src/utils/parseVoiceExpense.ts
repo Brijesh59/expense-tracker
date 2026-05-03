@@ -15,7 +15,6 @@ const MODELS: Record<Provider, string> = {
 export type LogItem = {
   amount: number | null;
   categoryId: string | null;
-  merchant: string;
   paymentMethod: string | null;
   notes: string;
 };
@@ -126,7 +125,7 @@ User said: "${transcript}"
 Decide the intent and respond with JSON only — no markdown, no extra text.
 
 If the user wants to LOG one or more expenses:
-{ "intent": "log", "items": [ { "amount": <number|null>, "categoryId": <id from list or null>, "merchant": <store/app name or "">, "paymentMethod": <"Cash"|"Card"|"UPI"|null>, "notes": <what was bought or ""> }, ... ] }
+{ "intent": "log", "items": [ { "amount": <number|null>, "categoryId": <id from list or null>, "paymentMethod": <"Cash"|"Card"|"UPI"|null>, "notes": <what was bought or ""> }, ... ] }
 
 If the user wants to SET one or more budgets:
 { "intent": "budget", "items": [ { "categoryId": <id from list or null>, "amount": <monthly budget amount or null>, "month": <1-12 or null for current month>, "year": <4-digit year or null for current year> }, ... ] }

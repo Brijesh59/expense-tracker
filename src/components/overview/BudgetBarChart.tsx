@@ -17,7 +17,8 @@ const CHART_MAX_HEIGHT = 200;
 const OVERFLOW_BUFFER = 48;
 const BAR_WIDTH = 64;
 const COLUMN_GAP = 14;
-const MIN_BAR_HEIGHT = 64;
+const ICON_SIZE = 18;
+const MIN_BAR_HEIGHT = ICON_SIZE + 8 + 8 + 16; // icon + paddingBottom + paddingTop + breathing room
 
 interface BudgetBarChartProps {
   budgets: BudgetWithSpend[];
@@ -98,14 +99,22 @@ function BarColumn({ item, category, maxBudget, index, onPress }: BarColumnProps
               backgroundColor: fillBg,
               borderRadius: 0,
               overflow: 'hidden',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              paddingBottom: 8,
             },
           ]}
+        />
+
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 8,
+            left: 0,
+            width: BAR_WIDTH,
+            alignItems: 'center',
+            zIndex: 1,
+          }}
         >
-          <Text style={{ fontSize: 18 }}>{category.icon}</Text>
-        </Animated.View>
+          <Text style={{ fontSize: ICON_SIZE }}>{category.icon}</Text>
+        </View>
       </View>
 
       <View style={{ marginTop: 8, alignItems: 'center', gap: 1 }}>

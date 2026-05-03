@@ -10,7 +10,6 @@ import Animated, {
   useAnimatedStyle,
   withRepeat,
   withTiming,
-  withDelay,
   cancelAnimation,
   Easing,
 } from 'react-native-reanimated';
@@ -23,6 +22,8 @@ import { Fonts, Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/Button';
 import { H3, Caption } from '@/components/ui/Typography';
+import { VoiceWaveform } from '@/components/ui/VoiceWaveform';
+import { useAudioMeter } from '@/hooks/useAudioMeter';
 import { useCategories } from '@/hooks/useCategories';
 import { useLumaStore } from '@/db/store';
 import { haptic } from '@/utils/haptics';
@@ -37,49 +38,12 @@ export interface VoiceExpenseSheetRef {
 
 interface VoiceExpenseSheetProps {
   onExpenseSaved?: (nudge: NudgeResult) => void;
-  onEditFirst?: (prefill: { amount: string; categoryId: string; merchant: string; paymentMethod: string | null; notes: string }) => void;
+  onEditFirst?: (prefill: { amount: string; categoryId: string; paymentMethod: string | null; notes: string }) => void;
 }
 
-type VoiceState = 'idle' | 'listening' | 'parsing' | 'log_result' | 'budget_result' | 'query_result' | 'error' | 'unavailable';
+type VoiceState = 'idle' | 'listening' | 'parsing' | 'log_result' | 'budget_result' | 'query_result' | 'error' | 'parse_error' | 'unavailable';
 
 const AnimatedIonicon = Animated.createAnimatedComponent(Ionicons);
-
-function VoiceWaveBar({ color, delay, height }: { color: string; delay: number; height: number }) {
-  const scale = useSharedValue(0.35);
-
-  useEffect(() => {
-    scale.value = withDelay(
-      delay,
-      withRepeat(
-        withTiming(1, { duration: 460, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true
-      )
-    );
-
-    return () => {
-      cancelAnimation(scale);
-    };
-  }, [delay, scale]);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scaleY: scale.value }],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        style,
-        {
-          width: 4,
-          height,
-          borderRadius: 4,
-          backgroundColor: color,
-        },
-      ]}
-    />
-  );
-}
 
 function ThinkingSparkle({ color, surfaceColor }: { color: string; surfaceColor: string }) {
   const progress = useSharedValue(0);
@@ -137,6 +101,8 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
     const [voiceResult, setVoiceResult] = useState<VoiceResult | null>(null);
     const [pendingItems, setPendingItems] = useState<LogItem[]>([]);
     const [pendingBudgets, setPendingBudgets] = useState<BudgetItem[]>([]);
+    const isListening = voiceState === 'listening';
+    const volume = useAudioMeter(isListening);
     const { colors, isDark } = useTheme();
     const [saving, setSaving] = useState(false);
 
@@ -161,7 +127,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
           })
           .catch(err => {
             console.error('[VoiceAssistant] failed:', err);
-            setVoiceState('error');
+            setVoiceState('parse_error');
           });
       }
     });
@@ -241,7 +207,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
           await addTransaction({
             amount: item.amount,
             categoryId,
-            merchant: item.merchant,
+            merchant: '',
             date: Date.now(),
             paymentMethod,
             notes: item.notes,
@@ -289,7 +255,6 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       onEditFirst?.({
         amount: String(item.amount ?? ''),
         categoryId: item.categoryId ?? 'other',
-        merchant: item.merchant,
         paymentMethod: item.paymentMethod,
         notes: item.notes,
       });
@@ -397,16 +362,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                   marginBottom: Spacing.lg,
                 }}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 30 }}>
-                  {[16, 24, 30, 22, 14].map((height, index) => (
-                    <VoiceWaveBar
-                      key={`${height}-${index}`}
-                      color={colors.onPrimary}
-                      delay={index * 90}
-                      height={height}
-                    />
-                  ))}
-                </View>
+                <VoiceWaveform volume={volume} color={colors.onPrimary} />
               </Pressable>
               <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textMuted, marginBottom: 12 }}>
                 Listening... tap to stop
@@ -460,7 +416,6 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                     </Text>
                   )}
 
-                  {singleItem?.merchant ? <Caption style={{ marginBottom: 2 }}>{singleItem.merchant}</Caption> : null}
                   {singleItem?.notes ? <Caption style={{ marginBottom: 2, color: colors.textMuted }}>{singleItem.notes}</Caption> : null}
                   {singleItem?.paymentMethod ? (
                     <Caption style={{ marginBottom: Spacing.xl, color: colors.textMuted }}>{singleItem.paymentMethod}</Caption>
@@ -505,9 +460,9 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
                                 {cat?.name ?? 'Other'}
                               </Text>
                             </View>
-                            {(item.merchant || item.notes) ? (
+                            {item.notes ? (
                               <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: colors.textMuted }}>
-                                {[item.merchant, item.notes].filter(Boolean).join(' · ')}
+                                {item.notes}
                               </Text>
                             ) : null}
                           </View>
@@ -636,12 +591,23 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
             </>
           )}
 
-          {/* ── Error ── */}
+          {/* ── Mic / permission error ── */}
           {voiceState === 'error' && (
             <>
               <Ionicons name="mic-off-outline" size={40} color={colors.textMuted} style={{ marginBottom: Spacing.md }} />
               <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: colors.textSecondary, marginBottom: Spacing.lg, textAlign: 'center' }}>
-                Something went wrong.{'\n'}Check mic permissions and try again.
+                Couldn't access the mic.{'\n'}Check permissions and try again.
+              </Text>
+              <Button onPress={resetState} fullWidth>Try again</Button>
+            </>
+          )}
+
+          {/* ── AI processing error ── */}
+          {voiceState === 'parse_error' && (
+            <>
+              <Ionicons name="cloud-offline-outline" size={40} color={colors.textMuted} style={{ marginBottom: Spacing.md }} />
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 15, color: colors.textSecondary, marginBottom: Spacing.lg, textAlign: 'center' }}>
+                Couldn't process that.{'\n'}Check your connection and try again.
               </Text>
               <Button onPress={resetState} fullWidth>Try again</Button>
             </>
