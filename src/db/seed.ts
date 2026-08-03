@@ -1,5 +1,5 @@
 import { Storage } from './storage';
-import type { Budget, Category } from './types';
+import type { BudgetRule, Category } from './types';
 
 const now = Date.now();
 const currentMonth = new Date().getMonth() + 1;
@@ -33,32 +33,29 @@ const SEED_CATEGORIES: Omit<Category, "isDefault">[] = [
   { id: "others", name: "Others", icon: "📦", color: "#8888A8" },
 ];
 
-const SEED_BUDGETS: Budget[] = [
-  { id: "budget-rent", categoryId: "rent", amount: 25000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-society-maintenance", categoryId: "society-maintenance", amount: 2000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-electricity", categoryId: "electricity", amount: 3000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-water", categoryId: "water", amount: 0, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-cooking-gas", categoryId: "cooking-gas", amount: 1500, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-internet-broadband", categoryId: "internet-broadband", amount: 1000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-mobile-recharge", categoryId: "mobile-recharge", amount: 1000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-ott-subscriptions", categoryId: "ott-subscriptions", amount: 1000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-insurance-health", categoryId: "insurance-health", amount: 1500, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-insurance-term", categoryId: "insurance-term", amount: 1500, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-loan-emi", categoryId: "loan-emi", amount: 0, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-grocery", categoryId: "grocery", amount: 6000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-milk", categoryId: "milk", amount: 2100, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-fruits-vegetables", categoryId: "fruits-vegetables", amount: 1000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-household-supplies", categoryId: "household-supplies", amount: 1000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-local-transport", categoryId: "local-transport", amount: 2000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-medical-pharmacy", categoryId: "medical-pharmacy", amount: 1000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-family-support", categoryId: "family-support", amount: 15000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-house-help", categoryId: "house-help", amount: 0, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-eating-out-dining", categoryId: "eating-out-dining", amount: 2500, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-entertainment", categoryId: "entertainment", amount: 2000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-shopping", categoryId: "shopping", amount: 5000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-personal-care", categoryId: "personal-care", amount: 4000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-skin-care-items", categoryId: "skin-care-items", amount: 3000, month: currentMonth, year: currentYear, createdAt: now },
-  { id: "budget-others", categoryId: "others", amount: 5000, month: currentMonth, year: currentYear, createdAt: now },
+const SEED_BUDGET_RULES: BudgetRule[] = [
+  { id: "rule-rent", workspaceId: "", categoryId: "rent", amount: 25000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-society-maintenance", workspaceId: "", categoryId: "society-maintenance", amount: 2000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-electricity", workspaceId: "", categoryId: "electricity", amount: 3000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-cooking-gas", workspaceId: "", categoryId: "cooking-gas", amount: 1500, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-internet-broadband", workspaceId: "", categoryId: "internet-broadband", amount: 1000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-mobile-recharge", workspaceId: "", categoryId: "mobile-recharge", amount: 1000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-ott-subscriptions", workspaceId: "", categoryId: "ott-subscriptions", amount: 1000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-insurance-health", workspaceId: "", categoryId: "insurance-health", amount: 1500, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-insurance-term", workspaceId: "", categoryId: "insurance-term", amount: 1500, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-grocery", workspaceId: "", categoryId: "grocery", amount: 6000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-milk", workspaceId: "", categoryId: "milk", amount: 2100, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-fruits-vegetables", workspaceId: "", categoryId: "fruits-vegetables", amount: 1000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-household-supplies", workspaceId: "", categoryId: "household-supplies", amount: 1000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-local-transport", workspaceId: "", categoryId: "local-transport", amount: 2000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-medical-pharmacy", workspaceId: "", categoryId: "medical-pharmacy", amount: 1000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-family-support", workspaceId: "", categoryId: "family-support", amount: 15000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-eating-out-dining", workspaceId: "", categoryId: "eating-out-dining", amount: 2500, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-entertainment", workspaceId: "", categoryId: "entertainment", amount: 2000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-shopping", workspaceId: "", categoryId: "shopping", amount: 5000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-personal-care", workspaceId: "", categoryId: "personal-care", amount: 4000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-skin-care-items", workspaceId: "", categoryId: "skin-care-items", amount: 3000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
+  { id: "rule-others", workspaceId: "", categoryId: "others", amount: 5000, startsMonth: currentMonth, startsYear: currentYear, createdAt: now },
 ];
 
 export async function seedCategories(workspaceId: string): Promise<Category[]> {
@@ -68,5 +65,10 @@ export async function seedCategories(workspaceId: string): Promise<Category[]> {
 }
 
 export async function seedBudgets(workspaceId: string): Promise<void> {
-  await Storage.saveBudgetsFor(workspaceId, SEED_BUDGETS);
+  const rules = SEED_BUDGET_RULES.map(rule => ({
+    ...rule,
+    id: `${workspaceId}-${rule.id}`,
+    workspaceId,
+  }));
+  await Storage.saveBudgetRulesFor(workspaceId, rules);
 }

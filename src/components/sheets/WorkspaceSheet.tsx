@@ -9,7 +9,6 @@ import {
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/Button';
-import { Caption } from '@/components/ui/Typography';
 import { useLumaStore } from '@/db/store';
 import { haptic } from '@/utils/haptics';
 import type { Workspace } from '@/db/types';
@@ -18,6 +17,8 @@ export interface WorkspaceSheetRef {
   present: () => void;
   dismiss: () => void;
 }
+
+const RECOMMENDED_WORKSPACES = ['Personal', 'Household', 'Japan Trip', 'Business', 'Family Support'];
 
 export const WorkspaceSheet = forwardRef<WorkspaceSheetRef>((_, ref) => {
   const { colors } = useTheme();
@@ -31,6 +32,11 @@ export const WorkspaceSheet = forwardRef<WorkspaceSheetRef>((_, ref) => {
   const [mode, setMode] = useState<'picker' | 'create'>('picker');
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const workspaceNames = workspaces.map(ws => ws.name.toLowerCase());
+  const suggestions = RECOMMENDED_WORKSPACES.filter(
+    name => !workspaceNames.includes(name.toLowerCase())
+  );
 
   useImperativeHandle(ref, () => ({
     present: () => {
@@ -62,6 +68,16 @@ export const WorkspaceSheet = forwardRef<WorkspaceSheetRef>((_, ref) => {
     sheetRef.current?.dismiss();
   }, [newName, addWorkspace, switchWorkspace]);
 
+  const handleCreateSuggestion = useCallback(async (name: string) => {
+    if (saving) return;
+    setSaving(true);
+    haptic.success();
+    const ws = await addWorkspace({ name });
+    await switchWorkspace(ws.id);
+    setSaving(false);
+    sheetRef.current?.dismiss();
+  }, [saving, addWorkspace, switchWorkspace]);
+
   const handleDelete = useCallback((ws: Workspace) => {
     if (workspaces.length <= 1) return;
     Alert.alert(
@@ -89,7 +105,7 @@ export const WorkspaceSheet = forwardRef<WorkspaceSheetRef>((_, ref) => {
   return (
     <BottomSheetModal
       ref={sheetRef}
-      snapPoints={mode === 'create' ? ['30%'] : ['40%']}
+      snapPoints={mode === 'create' ? ['44%'] : ['46%']}
       enablePanDownToClose
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
@@ -113,7 +129,7 @@ export const WorkspaceSheet = forwardRef<WorkspaceSheetRef>((_, ref) => {
               }}
             >
               <Text style={{ fontFamily: Fonts.semibold, fontSize: 16, color: colors.textPrimary }}>
-                Workspaces
+                Switch workspace
               </Text>
             </View>
 
@@ -163,19 +179,39 @@ export const WorkspaceSheet = forwardRef<WorkspaceSheetRef>((_, ref) => {
               }}
             >
               <Text style={{ fontFamily: Fonts.regular, fontSize: 15, color: colors.textSecondary }}>
-                + New workspace
+                Create workspace
               </Text>
             </Pressable>
-
-            <Caption style={{ paddingHorizontal: Spacing.md, marginTop: Spacing.sm, color: colors.textSecondary }}>
-              Long-press a workspace to delete it
-            </Caption>
           </>
         ) : (
           <View style={{ paddingHorizontal: Spacing.md }}>
             <Text style={{ fontFamily: Fonts.semibold, fontSize: 16, color: colors.textPrimary, marginBottom: Spacing.md, marginTop: Spacing.sm }}>
-              New workspace
+              Create workspace
             </Text>
+
+            {suggestions.length > 0 && (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: Spacing.md }}>
+                {suggestions.map(name => (
+                  <Pressable
+                    key={name}
+                    onPress={() => handleCreateSuggestion(name)}
+                    disabled={saving}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: Radius.full,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      backgroundColor: colors.surface2,
+                    }}
+                  >
+                    <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.textPrimary }}>
+                      {name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
 
             <BottomSheetTextInput
               value={newName}

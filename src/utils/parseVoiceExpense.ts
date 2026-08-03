@@ -1,5 +1,7 @@
-import type { Category } from '@/db/types';
-import type { Transaction } from '@/db/types';
+import type { Budget, BudgetOverride, BudgetRule, Category, Transaction, Workspace } from '@/db/types';
+import { Storage } from '@/db/storage';
+import { buildEffectiveBudgets } from '@/utils/budgetRules';
+import { endOfMonth, getMonthLabel, startOfMonth } from '@/utils/dates';
 
 // ─── Switch provider here ─────────────────────────────────────────────────────
 type Provider = 'gemini' | 'openai';
@@ -29,10 +31,401 @@ export type BudgetItem = {
 export type VoiceResult =
   | { intent: 'log'; items: LogItem[] }
   | { intent: 'budget'; items: BudgetItem[] }
-  | { intent: 'query'; answer: string };
+  | { intent: 'query'; answer: string; filter?: ExpenseQueryFilter; clarification?: string };
+
+export type QueryBudgetMode = 'left' | 'closest' | 'over' | 'summary';
+
+export interface ExpenseQueryFilter {
+  workspaceId: string;
+  workspaceName: string;
+  month?: number;
+  year?: number;
+  dateFrom?: number;
+  dateTo?: number;
+  categoryIds?: string[];
+  paymentMethods?: string[];
+  merchantSearch?: string;
+  notesSearch?: string;
+  textSearch?: string;
+  includeBudgetContext?: boolean;
+  budgetMode?: QueryBudgetMode;
+  ambiguousTerms?: string[];
+}
+
+export interface VoiceQueryContext {
+  workspaces: Workspace[];
+  currentWorkspaceId: string;
+  selectedMonth: number;
+  selectedYear: number;
+  budgetRules: BudgetRule[];
+  budgetOverrides: BudgetOverride[];
+}
 
 // Kept for backward-compat with AddExpenseSheet prefill shape
 export type ParsedExpense = LogItem;
+
+// ─── Structured query parsing / answering ───────────────────────────────────
+
+const PAYMENT_METHODS = [
+  { value: 'UPI', aliases: ['upi', 'gpay', 'google pay', 'phonepe', 'paytm'] },
+  { value: 'Card', aliases: ['card', 'credit card', 'debit card', 'visa', 'mastercard'] },
+  { value: 'Cash', aliases: ['cash'] },
+  { value: 'Wallet', aliases: ['wallet'] },
+  { value: 'Bank transfer', aliases: ['bank transfer', 'bank transfers', 'transfer', 'netbanking', 'net banking', 'imps', 'neft'] },
+] as const;
+
+const MONTH_ALIASES = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+];
+
+const QUERY_HINTS = [
+  'how much', 'what did', 'which', 'show', 'find', 'spent', 'spend', 'expenses',
+  'budget left', 'left in', 'closest to budget', 'over budget', 'limit',
+];
+
+function normalise(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function includesPhrase(haystack: string, phrase: string): boolean {
+  const h = ` ${normalise(haystack)} `;
+  const p = ` ${normalise(phrase)} `;
+  return h.includes(p);
+}
+
+function titleCase(value: string): string {
+  return value.replace(/\w\S*/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
+
+function formatMoney(amount: number): string {
+  return `₹${Math.round(amount).toLocaleString('en-IN')}`;
+}
+
+function addMonths(month: number, year: number, delta: number): { month: number; year: number } {
+  const date = new Date(year, month - 1 + delta, 1);
+  return { month: date.getMonth() + 1, year: date.getFullYear() };
+}
+
+function isLikelyQuery(transcript: string): boolean {
+  const q = normalise(transcript);
+  if (/\?$/.test(transcript.trim())) return true;
+  return QUERY_HINTS.some(hint => q.includes(hint));
+}
+
+function parseExplicitMonth(transcript: string, selectedMonth: number, selectedYear: number): { month?: number; year?: number; explicit: boolean; allTime: boolean } {
+  const q = normalise(transcript);
+  if (/\b(all time|overall|ever|till now|so far)\b/.test(q)) {
+    return { explicit: true, allTime: true };
+  }
+
+  const yearMatch = q.match(/\b(20\d{2}|19\d{2})\b/);
+  const year = yearMatch ? Number(yearMatch[1]) : selectedYear;
+
+  if (q.includes('last month')) {
+    return { ...addMonths(selectedMonth, selectedYear, -1), explicit: true, allTime: false };
+  }
+  if (q.includes('next month')) {
+    return { ...addMonths(selectedMonth, selectedYear, 1), explicit: true, allTime: false };
+  }
+  if (q.includes('this month') || q.includes('current month')) {
+    return { month: selectedMonth, year: selectedYear, explicit: true, allTime: false };
+  }
+
+  const foundMonth = MONTH_ALIASES.findIndex(month => q.includes(month));
+  if (foundMonth >= 0) {
+    return { month: foundMonth + 1, year, explicit: true, allTime: false };
+  }
+
+  return { month: selectedMonth, year: selectedYear, explicit: false, allTime: false };
+}
+
+function matchWorkspace(transcript: string, context?: VoiceQueryContext): Workspace | null {
+  if (!context) return null;
+  const matches = context.workspaces.filter(ws => includesPhrase(transcript, ws.name) || includesPhrase(transcript, ws.id));
+  if (matches.length === 1) return matches[0];
+  return context.workspaces.find(ws => ws.id === context.currentWorkspaceId) ?? null;
+}
+
+function matchPaymentMethods(transcript: string): string[] {
+  return PAYMENT_METHODS
+    .filter(method => method.aliases.some(alias => includesPhrase(transcript, alias)))
+    .map(method => method.value);
+}
+
+function isPaymentAlias(value: string): boolean {
+  const normalised = normalise(value);
+  return PAYMENT_METHODS.some(method =>
+    normalise(method.value) === normalised || method.aliases.some(alias => normalise(alias) === normalised)
+  );
+}
+
+function matchCategories(transcript: string, categories: Category[]): Category[] {
+  return categories.filter(category =>
+    includesPhrase(transcript, category.name) || includesPhrase(transcript, category.id)
+  );
+}
+
+function extractSearchAfter(transcript: string, patterns: RegExp[]): string | undefined {
+  for (const pattern of patterns) {
+    const match = transcript.match(pattern);
+    const value = match?.[1]?.trim().replace(/[?.!,]+$/, '');
+    if (value) return value;
+  }
+  return undefined;
+}
+
+function stripKnownTerms(text: string, categories: Category[], workspaces: Workspace[]): string {
+  let q = ` ${normalise(text)} `;
+  const removals = [
+    ...QUERY_HINTS,
+    ...PAYMENT_METHODS.flatMap(method => method.aliases),
+    ...categories.flatMap(category => [category.id, category.name]),
+    ...workspaces.flatMap(workspace => [workspace.id, workspace.name]),
+    ...MONTH_ALIASES,
+    'this month', 'current month', 'last month', 'next month', 'all time', 'overall',
+    'in', 'on', 'for', 'through', 'via', 'using', 'my', 'the', 'where', 'i', 'wrote',
+  ];
+
+  removals
+    .map(normalise)
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+    .forEach(term => {
+      q = q.replace(new RegExp(`\\s${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s`, 'g'), ' ');
+    });
+
+  return q.replace(/\s+/g, ' ').trim();
+}
+
+function inferBudgetMode(transcript: string): QueryBudgetMode | undefined {
+  const q = normalise(transcript);
+  if (q.includes('closest') || q.includes('nearest') || q.includes('limit')) return 'closest';
+  if (q.includes('over budget') || q.includes('exceeded') || q.includes('overspent')) return 'over';
+  if (q.includes('left') || q.includes('remaining')) return 'left';
+  if (q.includes('budget')) return 'summary';
+  return undefined;
+}
+
+function buildExpenseQueryFilter(
+  transcript: string,
+  categories: Category[],
+  context: VoiceQueryContext
+): ExpenseQueryFilter {
+  const workspace = matchWorkspace(transcript, context) ?? context.workspaces.find(ws => ws.id === context.currentWorkspaceId);
+  const monthInfo = parseExplicitMonth(transcript, context.selectedMonth, context.selectedYear);
+  const paymentMethods = matchPaymentMethods(transcript);
+  const categoryMatches = matchCategories(transcript, categories).filter(category =>
+    paymentMethods.length === 0 || (!isPaymentAlias(category.name) && !isPaymentAlias(category.id))
+  );
+  const budgetMode = inferBudgetMode(transcript);
+  const merchantSearch = extractSearchAfter(transcript, [
+    /\b(?:at|from|merchant)\s+([^?.!,]+)$/i,
+    /\bmerchant\s+(?:is|was|called)?\s*([^?.!,]+)$/i,
+  ]);
+  const notesSearch = extractSearchAfter(transcript, [
+    /\b(?:notes?|note|wrote|written|mentions?|with note)\s+(?:has|have|is|was|as|about|for)?\s*([^?.!,]+)$/i,
+    /\b(?:where|with)\s+i\s+wrote\s+([^?.!,]+)$/i,
+  ]);
+  const textSearch = !merchantSearch && !notesSearch && categoryMatches.length === 0 && paymentMethods.length === 0
+    ? stripKnownTerms(transcript, categories, context.workspaces)
+    : undefined;
+
+  const ambiguousTerms: string[] = [];
+  const workspaceMatches = context.workspaces.filter(ws => includesPhrase(transcript, ws.name) || includesPhrase(transcript, ws.id));
+  if (workspaceMatches.length > 1) ambiguousTerms.push(workspaceMatches.map(ws => ws.name).join(' / '));
+  if (categoryMatches.length > 1 && !/\b(categories|budgets|all|any)\b/i.test(transcript)) {
+    ambiguousTerms.push(categoryMatches.map(c => c.name).join(' / '));
+  }
+
+  const filter: ExpenseQueryFilter = {
+    workspaceId: workspace?.id ?? context.currentWorkspaceId,
+    workspaceName: workspace?.name ?? 'Current workspace',
+    includeBudgetContext: !!budgetMode,
+    budgetMode,
+  };
+
+  if (!monthInfo.allTime && monthInfo.month && monthInfo.year) {
+    filter.month = monthInfo.month;
+    filter.year = monthInfo.year;
+    filter.dateFrom = startOfMonth(monthInfo.month, monthInfo.year);
+    filter.dateTo = endOfMonth(monthInfo.month, monthInfo.year);
+  }
+  if (categoryMatches.length > 0) filter.categoryIds = categoryMatches.map(c => c.id);
+  if (paymentMethods.length > 0) filter.paymentMethods = paymentMethods;
+  if (merchantSearch) filter.merchantSearch = merchantSearch;
+  if (notesSearch) filter.notesSearch = notesSearch;
+  if (textSearch) filter.textSearch = textSearch;
+  if (ambiguousTerms.length > 0) filter.ambiguousTerms = ambiguousTerms;
+
+  return filter;
+}
+
+function filterTransactions(transactions: Transaction[], filter: ExpenseQueryFilter): Transaction[] {
+  const merchant = filter.merchantSearch?.toLowerCase();
+  const notes = filter.notesSearch?.toLowerCase();
+  const text = filter.textSearch?.toLowerCase();
+
+  return transactions.filter(t => {
+    if (filter.dateFrom !== undefined && t.date < filter.dateFrom) return false;
+    if (filter.dateTo !== undefined && t.date > filter.dateTo) return false;
+    if (filter.categoryIds?.length && !filter.categoryIds.includes(t.categoryId)) return false;
+    if (filter.paymentMethods?.length && !filter.paymentMethods.some(pm => normalise(pm) === normalise(t.paymentMethod ?? ''))) return false;
+    if (merchant && !t.merchant.toLowerCase().includes(merchant)) return false;
+    if (notes && !t.notes.toLowerCase().includes(notes)) return false;
+    if (text) {
+      const haystack = `${t.merchant} ${t.notes}`.toLowerCase();
+      if (!haystack.includes(text)) return false;
+    }
+    return true;
+  });
+}
+
+function describeFilter(filter: ExpenseQueryFilter, categories: Category[]): string {
+  const parts: string[] = [];
+  if (filter.paymentMethods?.length) parts.push(`${filter.paymentMethods.join(' or ')} spends`);
+  if (filter.categoryIds?.length) {
+    parts.push(filter.categoryIds.map(id => categories.find(c => c.id === id)?.name ?? id).join(' or '));
+  }
+  if (filter.merchantSearch) parts.push(`merchant matching "${filter.merchantSearch}"`);
+  if (filter.notesSearch) parts.push(`notes matching "${filter.notesSearch}"`);
+  if (filter.textSearch) parts.push(`matching "${filter.textSearch}"`);
+  parts.push(filter.month && filter.year ? getMonthLabel(filter.month, filter.year) : 'all time');
+  if (filter.workspaceName) parts.push(filter.workspaceName);
+  return parts.join(' in ');
+}
+
+function budgetRows(
+  transactions: Transaction[],
+  budgets: Budget[],
+  categories: Category[],
+  filter: ExpenseQueryFilter
+) {
+  const scopedBudgets = filter.categoryIds?.length
+    ? budgets.filter(budget => filter.categoryIds?.includes(budget.categoryId))
+    : budgets;
+
+  return scopedBudgets.map(budget => {
+    const spent = transactions
+      .filter(t => t.categoryId === budget.categoryId)
+      .reduce((sum, t) => sum + t.amount, 0);
+    const categoryName = categories.find(c => c.id === budget.categoryId)?.name ?? titleCase(budget.categoryId);
+    return {
+      categoryName,
+      amount: budget.amount,
+      spent,
+      remaining: budget.amount - spent,
+      ratio: budget.amount > 0 ? spent / budget.amount : 0,
+    };
+  });
+}
+
+function answerBudgetQuery(
+  transactions: Transaction[],
+  budgets: Budget[],
+  categories: Category[],
+  filter: ExpenseQueryFilter
+): string {
+  const rows = budgetRows(transactions, budgets, categories, filter);
+  const period = filter.month && filter.year ? getMonthLabel(filter.month, filter.year) : 'all time';
+
+  if (rows.length === 0) {
+    return `I couldn't find a budget for ${describeFilter(filter, categories)}.`;
+  }
+
+  if (filter.budgetMode === 'over') {
+    const over = rows.filter(row => row.remaining < 0).sort((a, b) => a.remaining - b.remaining);
+    if (over.length === 0) return `No categories are over budget in ${filter.workspaceName} for ${period}.`;
+    return over.slice(0, 3).map(row => `${row.categoryName} is over by ${formatMoney(Math.abs(row.remaining))} (${formatMoney(row.spent)} of ${formatMoney(row.amount)}).`).join(' ');
+  }
+
+  if (filter.budgetMode === 'closest') {
+    const closest = rows
+      .filter(row => row.remaining >= 0)
+      .sort((a, b) => a.remaining - b.remaining)[0] ?? rows.sort((a, b) => b.ratio - a.ratio)[0];
+    return `${closest.categoryName} is closest to budget in ${filter.workspaceName}: ${formatMoney(closest.remaining)} left after ${formatMoney(closest.spent)} of ${formatMoney(closest.amount)}.`;
+  }
+
+  const selected = filter.categoryIds?.length === 1 ? rows[0] : null;
+  if (selected) {
+    return `${selected.categoryName} has ${formatMoney(selected.remaining)} left in ${filter.workspaceName} for ${period}: ${formatMoney(selected.spent)} spent of ${formatMoney(selected.amount)}.`;
+  }
+
+  const totalBudget = rows.reduce((sum, row) => sum + row.amount, 0);
+  const totalSpent = rows.reduce((sum, row) => sum + row.spent, 0);
+  return `${filter.workspaceName} has ${formatMoney(totalBudget - totalSpent)} left across budgets for ${period}: ${formatMoney(totalSpent)} spent of ${formatMoney(totalBudget)}.`;
+}
+
+function answerTransactionQuery(transactions: Transaction[], categories: Category[], filter: ExpenseQueryFilter): string {
+  const total = transactions.reduce((sum, t) => sum + t.amount, 0);
+  const label = describeFilter(filter, categories);
+  if (transactions.length === 0) return `I found no expenses for ${label}.`;
+
+  const categoryTotals = new Map<string, number>();
+  transactions.forEach(t => categoryTotals.set(t.categoryId, (categoryTotals.get(t.categoryId) ?? 0) + t.amount));
+  const topCategory = Array.from(categoryTotals.entries()).sort((a, b) => b[1] - a[1])[0];
+  const topCategoryName = topCategory ? categories.find(c => c.id === topCategory[0])?.name ?? topCategory[0] : null;
+
+  const detail = topCategoryName && transactions.length > 1
+    ? ` Biggest category: ${topCategoryName} at ${formatMoney(topCategory![1])}.`
+    : '';
+  return `You spent ${formatMoney(total)} across ${transactions.length} expense${transactions.length === 1 ? '' : 's'} for ${label}.${detail}`;
+}
+
+async function loadQueryData(
+  filter: ExpenseQueryFilter,
+  current: { transactions: Transaction[]; categories: Category[]; budgetRules: BudgetRule[]; budgetOverrides: BudgetOverride[] },
+  currentWorkspaceId: string
+): Promise<{ transactions: Transaction[]; categories: Category[]; budgetRules: BudgetRule[]; budgetOverrides: BudgetOverride[] }> {
+  if (filter.workspaceId === currentWorkspaceId) return current;
+  const loaded = await Storage.loadAllFor(filter.workspaceId);
+  return {
+    transactions: loaded.transactions,
+    categories: loaded.categories,
+    budgetRules: loaded.budgetRules,
+    budgetOverrides: loaded.budgetOverrides,
+  };
+}
+
+async function answerStructuredQuery(
+  transcript: string,
+  categories: Category[],
+  transactions: Transaction[],
+  context: VoiceQueryContext
+): Promise<VoiceResult> {
+  const initialFilter = buildExpenseQueryFilter(transcript, categories, context);
+
+  if (initialFilter.ambiguousTerms?.length) {
+    const clarification = `Do you mean ${initialFilter.ambiguousTerms[0]}?`;
+    return { intent: 'query', answer: clarification, filter: initialFilter, clarification };
+  }
+
+  const data = await loadQueryData(initialFilter, {
+    transactions,
+    categories,
+    budgetRules: context.budgetRules,
+    budgetOverrides: context.budgetOverrides,
+  }, context.currentWorkspaceId);
+  const filter = buildExpenseQueryFilter(transcript, data.categories, context);
+  const scopedTransactions = filterTransactions(data.transactions, filter);
+
+  if (filter.includeBudgetContext) {
+    const month = filter.month ?? context.selectedMonth;
+    const year = filter.year ?? context.selectedYear;
+    const effectiveBudgets = buildEffectiveBudgets(filter.workspaceId, data.budgetRules, data.budgetOverrides, month, year);
+    return {
+      intent: 'query',
+      answer: answerBudgetQuery(scopedTransactions, effectiveBudgets, data.categories, filter),
+      filter,
+    };
+  }
+
+  return {
+    intent: 'query',
+    answer: answerTransactionQuery(scopedTransactions, data.categories, filter),
+    filter,
+  };
+}
 
 // ─── Transaction context builder ─────────────────────────────────────────────
 
@@ -194,7 +587,16 @@ export async function processVoiceInput(
   transcript: string,
   categories: Category[],
   transactions: Transaction[],
+  queryContext?: VoiceQueryContext,
 ): Promise<VoiceResult> {
+  if (queryContext && isLikelyQuery(transcript)) {
+    return answerStructuredQuery(transcript, categories, transactions, queryContext);
+  }
+
   const prompt = buildPrompt(transcript, categories, transactions);
-  return PROVIDER === 'openai' ? callOpenAI(prompt) : callGemini(prompt);
+  const result = PROVIDER === 'openai' ? await callOpenAI(prompt) : await callGemini(prompt);
+  if (result.intent === 'query' && queryContext) {
+    return answerStructuredQuery(transcript, categories, transactions, queryContext);
+  }
+  return result;
 }

@@ -49,7 +49,7 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
     const getSetting = useLumaStore(s => s.getSetting);
     const setSetting = useLumaStore(s => s.setSetting);
     const allTransactions = useLumaStore(s => s.transactions);
-    const allBudgets = useLumaStore(s => s.budgets);
+    const getEffectiveBudget = useLumaStore(s => s.getEffectiveBudget);
 
     const [amount, setAmount] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string>('food');
@@ -140,9 +140,7 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
             return d.getMonth() + 1 === month && d.getFullYear() === year;
           });
 
-          const categoryBudget = allBudgets.find(
-            b => b.categoryId === selectedCategoryId && b.month === month && b.year === year
-          )?.amount ?? null;
+          const categoryBudget = getEffectiveBudget(selectedCategoryId, month, year)?.amount ?? null;
 
           const categorySpent = catTransactions.reduce((sum, t) => sum + t.amount, 0) + parsedAmount;
 
@@ -171,7 +169,7 @@ export const AddExpenseSheet = forwardRef<AddExpenseSheetRef, AddExpenseSheetPro
       } finally {
         setSaving(false);
       }
-    }, [amount, selectedCategoryId, paymentMethod, notes, saving, editingTransaction, categories, allTransactions, allBudgets]);
+    }, [amount, selectedCategoryId, paymentMethod, notes, saving, editingTransaction, categories, allTransactions, getEffectiveBudget]);
 
     const handleDelete = useCallback(async () => {
       if (!editingTransaction || deleting) return;

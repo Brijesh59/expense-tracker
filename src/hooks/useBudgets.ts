@@ -20,14 +20,14 @@ export interface BudgetWithSpend {
 
 export function useBudgets({ month, year }: UseBudgetsOptions) {
   const allTransactions = useLumaStore(s => s.transactions);
-  const allBudgets = useLumaStore(s => s.budgets);
+  const getEffectiveBudgets = useLumaStore(s => s.getEffectiveBudgets);
 
   const start = startOfMonth(month, year);
   const end = endOfMonth(month, year);
 
   const budgets = useMemo(
-    () => allBudgets.filter(b => b.month === month && b.year === year),
-    [allBudgets, month, year]
+    () => getEffectiveBudgets(month, year),
+    [getEffectiveBudgets, month, year]
   );
 
   const transactions = useMemo(
