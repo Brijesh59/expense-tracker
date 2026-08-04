@@ -31,6 +31,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { computeNudge, NudgeResult } from '@/utils/nudgeEngine';
 import { getCurrentMonth } from '@/utils/dates';
 import { processVoiceInput, VoiceResult, LogItem, BudgetItem } from '@/utils/parseVoiceExpense';
+import { useMonthStore } from '@/store/monthStore';
 
 export interface VoiceExpenseSheetRef {
   present: () => void;
@@ -97,6 +98,12 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
     const updateBudget = useLumaStore(s => s.updateBudget);
     const allTransactions = useLumaStore(s => s.transactions);
     const getEffectiveBudget = useLumaStore(s => s.getEffectiveBudget);
+    const workspaces = useLumaStore(s => s.workspaces);
+    const currentWorkspaceId = useLumaStore(s => s.currentWorkspaceId);
+    const budgetRules = useLumaStore(s => s.budgetRules);
+    const budgetOverrides = useLumaStore(s => s.budgetOverrides);
+    const selectedMonth = useMonthStore(s => s.month);
+    const selectedYear = useMonthStore(s => s.year);
 
     const [voiceState, setVoiceState] = useState<VoiceState>('idle');
     const [transcript, setTranscript] = useState('');
@@ -113,7 +120,14 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       setTranscript(text);
       if (event.isFinal && text) {
         setVoiceState('parsing');
-        processVoiceInput(text, categories, allTransactions)
+        processVoiceInput(text, categories, allTransactions, {
+          workspaces,
+          currentWorkspaceId,
+          selectedMonth,
+          selectedYear,
+          budgetRules,
+          budgetOverrides,
+        })
           .then(result => {
             setVoiceResult(result);
             if (result.intent === 'log') {
