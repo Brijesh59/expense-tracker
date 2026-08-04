@@ -43,6 +43,7 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+    const [scope, setScope] = useState<'everyMonth' | 'thisMonth'>('everyMonth');
 
     useImperativeHandle(ref, () => ({
       present: (existingBudget?: Budget, categoryId?: string) => {
@@ -50,11 +51,13 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
           setEditingBudget(existingBudget);
           setSelectedCategoryId(existingBudget.categoryId);
           setAmount(String(existingBudget.amount));
+          setScope('everyMonth');
         } else {
           setEditingBudget(null);
           setAmount('');
+          setScope('everyMonth');
           const firstAvailable = categories.find(c => !existingCategoryIds.includes(c.id));
-          setSelectedCategoryId(categoryId ?? firstAvailable?.id ?? 'food');
+          setSelectedCategoryId(categoryId ?? firstAvailable?.id ?? categories[0]?.id ?? 'others');
         }
         sheetRef.current?.present();
       },
@@ -68,9 +71,13 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
 
       try {
         if (editingBudget) {
-          await updateBudget(editingBudget.id, { amount: parseFloat(amount) });
+          await updateBudget(
+            editingBudget.id,
+            { amount: parseFloat(amount) },
+            { scope, month: editingBudget.month, year: editingBudget.year, categoryId: editingBudget.categoryId }
+          );
         } else {
-          await addBudget({ categoryId: selectedCategoryId, amount: parseFloat(amount), month, year });
+          await addBudget({ categoryId: selectedCategoryId, amount: parseFloat(amount), month, year }, { scope });
         }
         sheetRef.current?.dismiss();
         onSaved?.();
@@ -79,14 +86,17 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
       } finally {
         setSaving(false);
       }
-    }, [amount, selectedCategoryId, saving, editingBudget, month, year]);
+    }, [amount, selectedCategoryId, saving, editingBudget, month, year, scope, updateBudget, addBudget, onSaved]);
 
     const handleDelete = useCallback(async () => {
       if (!editingBudget || deleting) return;
       setDeleting(true);
       haptic.warning();
       try {
-        await deleteBudget(editingBudget.id);
+        await deleteBudget(
+          editingBudget.id,
+          { scope, month: editingBudget.month, year: editingBudget.year, categoryId: editingBudget.categoryId }
+        );
         sheetRef.current?.dismiss();
         onSaved?.();
       } catch (e) {
@@ -94,7 +104,7 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
       } finally {
         setDeleting(false);
       }
-    }, [editingBudget, deleting]);
+    }, [editingBudget, deleting, scope, deleteBudget, onSaved]);
 
     const availableCategories = editingBudget
       ? categories
@@ -103,7 +113,7 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
     return (
       <BottomSheetModal
         ref={sheetRef}
-        snapPoints={['48%']}
+        snapPoints={['58%']}
         enablePanDownToClose
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
@@ -188,6 +198,49 @@ export const BudgetFormSheet = forwardRef<BudgetFormSheetRef, BudgetFormSheetPro
                 fontVariant: ['tabular-nums'],
               }}
             />
+          </View>
+
+          <Caption style={{ marginBottom: 10 }}>
+            {editingBudget ? 'Update' : 'Use this budget'}
+          </Caption>
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: 8,
+              marginBottom: Spacing.xl,
+            }}
+          >
+            {[
+              { key: 'everyMonth', label: editingBudget ? 'Every month' : 'Every month' },
+              { key: 'thisMonth', label: 'This month only' },
+            ].map(option => {
+              const selected = scope === option.key;
+              return (
+                <Pressable
+                  key={option.key}
+                  onPress={() => { setScope(option.key as 'everyMonth' | 'thisMonth'); haptic.light(); }}
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    paddingVertical: 11,
+                    borderRadius: Radius.sm,
+                    borderWidth: 1.5,
+                    borderColor: selected ? colors.primary : colors.border,
+                    backgroundColor: selected ? `${colors.primary}18` : colors.surface,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: selected ? Fonts.semibold : Fonts.regular,
+                      fontSize: 13,
+                      color: selected ? colors.primary : colors.textSecondary,
+                    }}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <Button

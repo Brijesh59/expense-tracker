@@ -13,14 +13,14 @@
 
   <defs>
     <linearGradient id="luma-bg-gradient" x1="110" y1="0" x2="914" y2="1024" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#4020C8" />
-      <stop offset="0.45" stop-color="#4B18CF" />
-      <stop offset="1" stop-color="#3414B9" />
+      <stop offset="0" stop-color="#3A1DB3" />
+      <stop offset="0.45" stop-color="#4420C0" />
+      <stop offset="1" stop-color="#301797" />
     </linearGradient>
     <radialGradient id="luma-bg-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(520 505) rotate(90) scale(560 500)">
-      <stop offset="0" stop-color="#5C28E5" stop-opacity="0.55" />
-      <stop offset="0.62" stop-color="#4B18CF" stop-opacity="0.18" />
-      <stop offset="1" stop-color="#2F10AD" stop-opacity="0" />
+      <stop offset="0" stop-color="#4B24C8" stop-opacity="0.45" />
+      <stop offset="0.62" stop-color="#3A1DB3" stop-opacity="0.16" />
+      <stop offset="1" stop-color="#2E168F" stop-opacity="0" />
     </radialGradient>
     <filter id="cat-soft-edge" x="118" y="142" width="820" height="902" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
       <feGaussianBlur in="SourceAlpha" stdDeviation="1.4" result="blur" />
@@ -41,7 +41,7 @@
     <path
       id="cat-body"
       d="M137 1024V704C137 657 145 615 161 581C145 509 134 443 134 363C134 245 160 183 202 166C263 141 336 208 410 329C462 318 529 312 592 318C615 225 639 178 673 166C730 145 788 212 833 322C859 386 874 465 875 535C900 586 909 660 922 731C934 794 907 856 847 904C776 961 672 990 533 998C458 1002 374 1002 280 1001C230 1001 182 1002 137 1024Z"
-      fill="#FFFFFF"
+      fill="#F5E12A"
     />
   </g>
 

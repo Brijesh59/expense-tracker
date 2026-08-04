@@ -1,2 +1,5 @@
-// Route handled by app/(tabs)/insights.tsx
-export {};
+import { Redirect } from 'expo-router';
+
+export default function InsightsRedirect() {
+  return <Redirect href="/(tabs)/insights" />;
+}

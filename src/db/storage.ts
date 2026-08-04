@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Transaction, Budget, Category, Settings, Workspace } from './types';
+import type { Transaction, Budget, BudgetOverride, BudgetRule, Category, Settings, Workspace } from './types';
 
 const KEYS = {
   TRANSACTIONS: '@luma/transactions',
@@ -15,6 +15,9 @@ function wsKeys(wsId: string) {
   return {
     TRANSACTIONS: `@luma/ws/${wsId}/transactions`,
     BUDGETS: `@luma/ws/${wsId}/budgets`,
+    BUDGET_RULES: `@luma/ws/${wsId}/budgetRules`,
+    BUDGET_OVERRIDES: `@luma/ws/${wsId}/budgetOverrides`,
+    BUDGET_MIGRATION_BACKUP: `@luma/ws/${wsId}/budgetMigrationBackup`,
     CATEGORIES: `@luma/ws/${wsId}/categories`,
   };
 }
@@ -65,6 +68,20 @@ export const Storage = {
     return setJSON(wsKeys(wsId).BUDGETS, budgets);
   },
 
+  async getBudgetRulesFor(wsId: string): Promise<BudgetRule[]> {
+    return getJSON<BudgetRule[]>(wsKeys(wsId).BUDGET_RULES, []);
+  },
+  async saveBudgetRulesFor(wsId: string, rules: BudgetRule[]): Promise<void> {
+    return setJSON(wsKeys(wsId).BUDGET_RULES, rules);
+  },
+
+  async getBudgetOverridesFor(wsId: string): Promise<BudgetOverride[]> {
+    return getJSON<BudgetOverride[]>(wsKeys(wsId).BUDGET_OVERRIDES, []);
+  },
+  async saveBudgetOverridesFor(wsId: string, overrides: BudgetOverride[]): Promise<void> {
+    return setJSON(wsKeys(wsId).BUDGET_OVERRIDES, overrides);
+  },
+
   async getCategoriesFor(wsId: string): Promise<Category[]> {
     return getJSON<Category[]>(wsKeys(wsId).CATEGORIES, []);
   },
@@ -72,13 +89,83 @@ export const Storage = {
     return setJSON(wsKeys(wsId).CATEGORIES, categories);
   },
 
-  async loadAllFor(wsId: string): Promise<{ transactions: Transaction[]; budgets: Budget[]; categories: Category[] }> {
-    const [transactions, budgets, categories] = await Promise.all([
+  async loadAllFor(wsId: string): Promise<{
+    transactions: Transaction[];
+    budgets: Budget[];
+    budgetRules: BudgetRule[];
+    budgetOverrides: BudgetOverride[];
+    categories: Category[];
+  }> {
+    const [transactions, budgets, budgetRules, budgetOverrides, categories] = await Promise.all([
       this.getTransactionsFor(wsId),
       this.getBudgetsFor(wsId),
+      this.getBudgetRulesFor(wsId),
+      this.getBudgetOverridesFor(wsId),
       this.getCategoriesFor(wsId),
     ]);
-    return { transactions, budgets, categories };
+    return { transactions, budgets, budgetRules, budgetOverrides, categories };
+  },
+
+  async migrateBudgetsToRecurring(wsId: string): Promise<void> {
+    const [legacyBudgets, existingRules, existingOverrides] = await Promise.all([
+      this.getBudgetsFor(wsId),
+      this.getBudgetRulesFor(wsId),
+      this.getBudgetOverridesFor(wsId),
+    ]);
+
+    if (legacyBudgets.length === 0 || existingRules.length > 0 || existingOverrides.length > 0) {
+      return;
+    }
+
+    const latestByCategory = new Map<string, Budget>();
+    legacyBudgets.forEach(budget => {
+      const current = latestByCategory.get(budget.categoryId);
+      const currentRank = current ? current.year * 12 + current.month : -1;
+      const nextRank = budget.year * 12 + budget.month;
+      if (!current || nextRank > currentRank || (nextRank === currentRank && budget.createdAt > current.createdAt)) {
+        latestByCategory.set(budget.categoryId, budget);
+      }
+    });
+
+    const now = Date.now();
+    const rules: BudgetRule[] = Array.from(latestByCategory.values())
+      .filter(budget => budget.amount > 0)
+      .map(budget => ({
+        id: `rule-${budget.id}`,
+        workspaceId: wsId,
+        categoryId: budget.categoryId,
+        amount: budget.amount,
+        startsMonth: budget.month,
+        startsYear: budget.year,
+        createdAt: budget.createdAt,
+        updatedAt: now,
+      }));
+
+    const latestAmountByCategory = new Map(
+      Array.from(latestByCategory.entries()).map(([categoryId, budget]) => [categoryId, budget.amount])
+    );
+    const overrides: BudgetOverride[] = legacyBudgets
+      .filter(budget => {
+        const latestAmount = latestAmountByCategory.get(budget.categoryId);
+        return budget.amount > 0 && latestAmount !== undefined && budget.amount !== latestAmount;
+      })
+      .map(budget => ({
+        id: `override-${budget.id}`,
+        workspaceId: wsId,
+        categoryId: budget.categoryId,
+        month: budget.month,
+        year: budget.year,
+        amount: budget.amount,
+        createdAt: budget.createdAt,
+        updatedAt: now,
+      }));
+
+    await Promise.all([
+      setJSON(wsKeys(wsId).BUDGET_MIGRATION_BACKUP, legacyBudgets),
+      this.saveBudgetRulesFor(wsId, rules),
+      this.saveBudgetOverridesFor(wsId, overrides),
+      AsyncStorage.removeItem(wsKeys(wsId).BUDGETS),
+    ]);
   },
 
   // ── Migration from flat keys to workspace-namespaced keys ─────────────────
@@ -126,7 +213,12 @@ export const Storage = {
   async clearAll(): Promise<void> {
     const wsId = await this.getCurrentWorkspaceId();
     if (wsId) {
-      await AsyncStorage.multiRemove([wsKeys(wsId).TRANSACTIONS, wsKeys(wsId).BUDGETS]);
+      await AsyncStorage.multiRemove([
+        wsKeys(wsId).TRANSACTIONS,
+        wsKeys(wsId).BUDGETS,
+        wsKeys(wsId).BUDGET_RULES,
+        wsKeys(wsId).BUDGET_OVERRIDES,
+      ]);
     }
   },
 

@@ -16,7 +16,7 @@ import { getCurrentMonth } from '@/utils/dates';
 export default function FirstBudgetScreen() {
   const { colors } = useTheme();
   const categories = useCategories();
-  const budgets = useLumaStore(s => s.budgets);
+  const getEffectiveBudget = useLumaStore(s => s.getEffectiveBudget);
   const addBudget = useLumaStore(s => s.addBudget);
   const updateBudget = useLumaStore(s => s.updateBudget);
   const setSetting = useLumaStore(s => s.setSetting);
@@ -39,16 +39,16 @@ export default function FirstBudgetScreen() {
 
     const { month, year } = getCurrentMonth();
     const budgetAmount = parseFloat(amount);
-    const existingBudget = budgets.find(
-      budget =>
-        budget.categoryId === selectedCategoryId &&
-        budget.month === month &&
-        budget.year === year
-    );
+    const existingBudget = getEffectiveBudget(selectedCategoryId, month, year);
 
     try {
       if (existingBudget) {
-        await updateBudget(existingBudget.id, { amount: budgetAmount });
+        await updateBudget(existingBudget.id, { amount: budgetAmount }, {
+          scope: 'everyMonth',
+          month,
+          year,
+          categoryId: selectedCategoryId,
+        });
       } else {
         await addBudget({ categoryId: selectedCategoryId, amount: budgetAmount, month, year });
       }

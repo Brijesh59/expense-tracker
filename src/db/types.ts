@@ -16,6 +16,33 @@ export interface Budget {
   month: number;
   year: number;
   createdAt: number;
+  ruleId?: string;
+  overrideId?: string;
+  isOverride?: boolean;
+}
+
+export interface BudgetRule {
+  id: string;
+  workspaceId: string;
+  categoryId: string;
+  amount: number;
+  startsMonth: number;
+  startsYear: number;
+  endsMonth?: number;
+  endsYear?: number;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export interface BudgetOverride {
+  id: string;
+  workspaceId: string;
+  categoryId: string;
+  month: number;
+  year: number;
+  amount: number;
+  createdAt: number;
+  updatedAt?: number;
 }
 
 export interface Category {

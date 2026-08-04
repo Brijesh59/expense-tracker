@@ -96,7 +96,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
     const addBudget = useLumaStore(s => s.addBudget);
     const updateBudget = useLumaStore(s => s.updateBudget);
     const allTransactions = useLumaStore(s => s.transactions);
-    const allBudgets = useLumaStore(s => s.budgets);
+    const getEffectiveBudget = useLumaStore(s => s.getEffectiveBudget);
 
     const [voiceState, setVoiceState] = useState<VoiceState>('idle');
     const [transcript, setTranscript] = useState('');
@@ -222,9 +222,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
             const d = new Date(t.date);
             return d.getMonth() + 1 === month && d.getFullYear() === year;
           });
-          const categoryBudget = allBudgets.find(
-            b => b.categoryId === categoryId && b.month === month && b.year === year
-          )?.amount ?? null;
+          const categoryBudget = getEffectiveBudget(categoryId, month, year)?.amount ?? null;
           const categorySpent = catTransactions.reduce((s, t) => s + t.amount, 0) + item.amount;
           const now = new Date();
           const todayCount = catTransactions.filter(t => {
@@ -249,7 +247,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       } finally {
         setSaving(false);
       }
-    }, [pendingItems, saving, addTransaction, setSetting, allTransactions, allBudgets, categories, onExpenseSaved]);
+    }, [pendingItems, saving, addTransaction, setSetting, allTransactions, getEffectiveBudget, categories, onExpenseSaved]);
 
     const handleEditFirst = useCallback(() => {
       if (pendingItems.length !== 1) return;
@@ -277,11 +275,14 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
         for (const item of validBudgets) {
           const month = item.month ?? currentMonth;
           const year = item.year ?? currentYear;
-          const existing = allBudgets.find(
-            b => b.categoryId === item.categoryId && b.month === month && b.year === year
-          );
+          const existing = getEffectiveBudget(item.categoryId, month, year);
           if (existing) {
-            await updateBudget(existing.id, { amount: item.amount });
+            await updateBudget(existing.id, { amount: item.amount }, {
+              scope: 'everyMonth',
+              month,
+              year,
+              categoryId: item.categoryId,
+            });
           } else {
             await addBudget({ categoryId: item.categoryId, amount: item.amount, month, year });
           }
@@ -292,7 +293,7 @@ export const VoiceExpenseSheet = forwardRef<VoiceExpenseSheetRef, VoiceExpenseSh
       } finally {
         setSaving(false);
       }
-    }, [pendingBudgets, saving, allBudgets, addBudget, updateBudget]);
+    }, [pendingBudgets, saving, getEffectiveBudget, addBudget, updateBudget]);
 
     useImperativeHandle(ref, () => ({
       present: () => { resetState(); sheetRef.current?.present(); },

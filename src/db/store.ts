@@ -1,11 +1,46 @@
 import { create } from 'zustand';
 import { seedCategories, seedBudgets } from './seed';
 import { Storage } from './storage';
-import type { Budget, Category, Settings, Transaction, Workspace } from './types';
+import type { Budget, BudgetOverride, BudgetRule, Category, Settings, Transaction, Workspace } from './types';
+import { buildEffectiveBudgets } from '@/utils/budgetRules';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
+
+const STARTER_WORKSPACES = ['Personal', 'Household', 'Japan Trip', 'Business', 'Family Support'];
+
+function getCurrentBudgetMonth() {
+  const now = new Date();
+  return { month: now.getMonth() + 1, year: now.getFullYear() };
+}
+
+function slugifyWorkspaceName(name: string): string {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || generateId();
+}
+
+async function ensureStarterWorkspaces(workspaces: Workspace[]): Promise<Workspace[]> {
+  const existingNames = new Set(workspaces.map(ws => ws.name.toLowerCase()));
+  const missing = STARTER_WORKSPACES.filter(name => !existingNames.has(name.toLowerCase()));
+
+  if (missing.length === 0) {
+    return workspaces;
+  }
+
+  const createdAt = Date.now();
+  const additions = missing.map(name => ({
+    id: slugifyWorkspaceName(name),
+    name,
+    createdAt,
+  }));
+
+  await Promise.all(additions.map(ws => seedCategories(ws.id)));
+  const next = [...workspaces, ...additions];
+  await Storage.saveWorkspaces(next);
+  return next;
+}
+
+type BudgetScope = 'everyMonth' | 'thisMonth';
 
 interface LumaStore {
   isLoaded: boolean;
@@ -13,6 +48,8 @@ interface LumaStore {
   currentWorkspaceId: string;
   transactions: Transaction[];
   budgets: Budget[];
+  budgetRules: BudgetRule[];
+  budgetOverrides: BudgetOverride[];
   categories: Category[];
   settings: Settings;
 
@@ -29,9 +66,20 @@ interface LumaStore {
   deleteTransaction: (id: string) => Promise<void>;
 
   // Budgets
-  addBudget: (data: Omit<Budget, 'id' | 'createdAt'>) => Promise<Budget>;
-  updateBudget: (id: string, updates: Partial<Omit<Budget, 'id' | 'createdAt'>>) => Promise<void>;
-  deleteBudget: (id: string) => Promise<void>;
+  addBudget: (data: Omit<Budget, 'id' | 'createdAt'>, options?: { scope?: BudgetScope }) => Promise<Budget>;
+  updateBudget: (
+    id: string,
+    updates: Partial<Omit<Budget, 'id' | 'createdAt'>>,
+    options?: { scope?: BudgetScope; month?: number; year?: number; categoryId?: string }
+  ) => Promise<void>;
+  deleteBudget: (id: string, options?: { scope?: BudgetScope; month?: number; year?: number; categoryId?: string }) => Promise<void>;
+  addBudgetRule: (data: Omit<BudgetRule, 'id' | 'workspaceId' | 'createdAt'>) => Promise<BudgetRule>;
+  updateBudgetRule: (id: string, updates: Partial<Omit<BudgetRule, 'id' | 'workspaceId' | 'createdAt'>>) => Promise<void>;
+  deleteBudgetRule: (id: string) => Promise<void>;
+  setBudgetOverride: (data: Omit<BudgetOverride, 'id' | 'workspaceId' | 'createdAt'>) => Promise<BudgetOverride>;
+  deleteBudgetOverride: (id: string) => Promise<void>;
+  getEffectiveBudgets: (month: number, year: number) => Budget[];
+  getEffectiveBudget: (categoryId: string, month: number, year: number) => Budget | null;
 
   // Categories
   addCategory: (data: Omit<Category, 'id' | 'isDefault'>) => Promise<Category>;
@@ -53,6 +101,8 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
   currentWorkspaceId: 'personal',
   transactions: [],
   budgets: [],
+  budgetRules: [],
+  budgetOverrides: [],
   categories: [],
   settings: {},
 
@@ -63,24 +113,38 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
 
     // First-time setup (new install or update from pre-workspace build)
     if (workspaces.length === 0) {
-      const ws: Workspace = { id: 'personal', name: 'Personal', createdAt: Date.now() };
-      workspaces = [ws];
-      currentWorkspaceId = ws.id;
+      const createdAt = Date.now();
+      workspaces = STARTER_WORKSPACES.map(name => ({
+        id: slugifyWorkspaceName(name),
+        name,
+        createdAt,
+      }));
+      currentWorkspaceId = 'personal';
 
-      const migrated = await Storage.migrateToWorkspace(ws.id);
+      const migrated = await Storage.migrateToWorkspace(currentWorkspaceId);
       if (!migrated) {
-        await seedCategories(ws.id);
-        await seedBudgets(ws.id);
+        await seedCategories(currentWorkspaceId);
+        await seedBudgets(currentWorkspaceId);
       }
 
+      await Promise.all(
+        workspaces
+          .filter(ws => ws.id !== currentWorkspaceId)
+          .map(ws => seedCategories(ws.id))
+      );
       await Storage.saveWorkspaces(workspaces);
-      await Storage.saveCurrentWorkspaceId(ws.id);
+      await Storage.saveCurrentWorkspaceId(currentWorkspaceId);
+    } else {
+      workspaces = await ensureStarterWorkspaces(workspaces);
     }
 
     if (!currentWorkspaceId) currentWorkspaceId = workspaces[0].id;
 
-    const { transactions, budgets, categories } = await Storage.loadAllFor(currentWorkspaceId);
-    set({ workspaces, currentWorkspaceId, transactions, budgets, categories, settings, isLoaded: true });
+    await Storage.migrateBudgetsToRecurring(currentWorkspaceId);
+    const { transactions, budgetRules, budgetOverrides, categories } = await Storage.loadAllFor(currentWorkspaceId);
+    const { month, year } = getCurrentBudgetMonth();
+    const budgets = buildEffectiveBudgets(currentWorkspaceId, budgetRules, budgetOverrides, month, year);
+    set({ workspaces, currentWorkspaceId, transactions, budgets, budgetRules, budgetOverrides, categories, settings, isLoaded: true });
   },
 
   // ── Workspaces ────────────────────────────────────────────────────────────
@@ -90,15 +154,17 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
     const workspaces = [...get().workspaces, ws];
     await Storage.saveWorkspaces(workspaces);
     await seedCategories(ws.id);
-    await seedBudgets(ws.id);
     set({ workspaces });
     return ws;
   },
 
   switchWorkspace: async (id) => {
     await Storage.saveCurrentWorkspaceId(id);
-    const { transactions, budgets, categories } = await Storage.loadAllFor(id);
-    set({ currentWorkspaceId: id, transactions, budgets, categories });
+    await Storage.migrateBudgetsToRecurring(id);
+    const { transactions, budgetRules, budgetOverrides, categories } = await Storage.loadAllFor(id);
+    const { month, year } = getCurrentBudgetMonth();
+    const budgets = buildEffectiveBudgets(id, budgetRules, budgetOverrides, month, year);
+    set({ currentWorkspaceId: id, transactions, budgets, budgetRules, budgetOverrides, categories });
   },
 
   deleteWorkspace: async (id) => {
@@ -138,26 +204,184 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
 
   // ── Budgets ───────────────────────────────────────────────────────────────
 
-  addBudget: async (data) => {
-    const budget: Budget = { ...data, id: generateId(), createdAt: Date.now() };
-    const budgets = [...get().budgets, budget];
-    set({ budgets });
-    await Storage.saveBudgetsFor(get().currentWorkspaceId, budgets);
-    return budget;
+  addBudget: async (data, options) => {
+    const scope = options?.scope ?? 'everyMonth';
+    if (scope === 'thisMonth') {
+      return get().setBudgetOverride({
+        categoryId: data.categoryId,
+        amount: data.amount,
+        month: data.month,
+        year: data.year,
+      });
+    }
+
+    const rule = await get().addBudgetRule({
+      categoryId: data.categoryId,
+      amount: data.amount,
+      startsMonth: data.month,
+      startsYear: data.year,
+    });
+    return {
+      id: rule.id,
+      categoryId: rule.categoryId,
+      amount: rule.amount,
+      month: data.month,
+      year: data.year,
+      createdAt: rule.createdAt,
+      ruleId: rule.id,
+      isOverride: false,
+    };
   },
 
-  updateBudget: async (id, updates) => {
-    const budgets = get().budgets.map(b =>
-      b.id === id ? { ...b, ...updates } : b
+  updateBudget: async (id, updates, options) => {
+    const state = get();
+    const scope = options?.scope ?? 'everyMonth';
+    const amount = updates.amount;
+    const existingBudget = state.budgets.find(b => b.id === id);
+    const categoryId = options?.categoryId ?? existingBudget?.categoryId;
+    const month = options?.month ?? existingBudget?.month;
+    const year = options?.year ?? existingBudget?.year;
+    const existingRule = state.budgetRules.find(rule => rule.id === id || rule.id === existingBudget?.ruleId);
+    const existingOverride = state.budgetOverrides.find(override => override.id === id || override.id === existingBudget?.overrideId);
+
+    if (scope === 'thisMonth') {
+      if (!categoryId || !month || !year || amount === undefined) return;
+      const override = state.budgetOverrides.find(o =>
+        o.categoryId === categoryId && o.month === month && o.year === year
+      );
+      if (override) {
+        await get().setBudgetOverride({ ...override, amount });
+      } else {
+        await get().setBudgetOverride({ categoryId, amount, month, year });
+      }
+      return;
+    }
+
+    if (existingRule) {
+      await get().updateBudgetRule(existingRule.id, { amount });
+      return;
+    }
+
+    if (existingOverride && categoryId && month && year && amount !== undefined) {
+      await get().addBudgetRule({ categoryId, amount, startsMonth: month, startsYear: year });
+      return;
+    }
+  },
+
+  deleteBudget: async (id, options) => {
+    const state = get();
+    const scope = options?.scope ?? 'everyMonth';
+    const existingBudget = state.budgets.find(b => b.id === id);
+    const ruleId = existingBudget?.ruleId ?? id;
+    const overrideId = existingBudget?.overrideId ?? id;
+
+    if (scope === 'thisMonth') {
+      const override = state.budgetOverrides.find(o => o.id === overrideId);
+      if (override) {
+        await get().deleteBudgetOverride(override.id);
+        return;
+      }
+      const categoryId = options?.categoryId ?? existingBudget?.categoryId;
+      const month = options?.month ?? existingBudget?.month;
+      const year = options?.year ?? existingBudget?.year;
+      if (categoryId && month && year) {
+        await get().setBudgetOverride({ categoryId, amount: 0, month, year });
+      }
+      return;
+    }
+
+    const rule = state.budgetRules.find(r => r.id === ruleId);
+    if (rule) {
+      await get().deleteBudgetRule(rule.id);
+    }
+  },
+
+  addBudgetRule: async (data) => {
+    const workspaceId = get().currentWorkspaceId;
+    const existingRule = get().budgetRules.find(rule =>
+      rule.categoryId === data.categoryId &&
+      !rule.endsMonth &&
+      !rule.endsYear
     );
-    set({ budgets });
-    await Storage.saveBudgetsFor(get().currentWorkspaceId, budgets);
+    const now = Date.now();
+
+    if (existingRule) {
+      const updated = {
+        ...existingRule,
+        categoryId: data.categoryId,
+        amount: data.amount,
+        updatedAt: now,
+      };
+      const budgetRules = get().budgetRules.map(rule => rule.id === updated.id ? updated : rule);
+      const { month, year } = getCurrentBudgetMonth();
+      set({ budgetRules, budgets: buildEffectiveBudgets(workspaceId, budgetRules, get().budgetOverrides, month, year) });
+      await Storage.saveBudgetRulesFor(workspaceId, budgetRules);
+      return updated;
+    }
+
+    const rule: BudgetRule = { ...data, id: generateId(), workspaceId, createdAt: now };
+    const budgetRules = [...get().budgetRules, rule];
+    const { month, year } = getCurrentBudgetMonth();
+    set({ budgetRules, budgets: buildEffectiveBudgets(workspaceId, budgetRules, get().budgetOverrides, month, year) });
+    await Storage.saveBudgetRulesFor(workspaceId, budgetRules);
+    return rule;
   },
 
-  deleteBudget: async (id) => {
-    const budgets = get().budgets.filter(b => b.id !== id);
-    set({ budgets });
-    await Storage.saveBudgetsFor(get().currentWorkspaceId, budgets);
+  updateBudgetRule: async (id, updates) => {
+    const workspaceId = get().currentWorkspaceId;
+    const budgetRules = get().budgetRules.map(rule =>
+      rule.id === id ? { ...rule, ...updates, updatedAt: Date.now() } : rule
+    );
+    const { month, year } = getCurrentBudgetMonth();
+    set({ budgetRules, budgets: buildEffectiveBudgets(workspaceId, budgetRules, get().budgetOverrides, month, year) });
+    await Storage.saveBudgetRulesFor(workspaceId, budgetRules);
+  },
+
+  deleteBudgetRule: async (id) => {
+    const workspaceId = get().currentWorkspaceId;
+    const budgetRules = get().budgetRules.filter(rule => rule.id !== id);
+    const { month, year } = getCurrentBudgetMonth();
+    set({ budgetRules, budgets: buildEffectiveBudgets(workspaceId, budgetRules, get().budgetOverrides, month, year) });
+    await Storage.saveBudgetRulesFor(workspaceId, budgetRules);
+  },
+
+  setBudgetOverride: async (data) => {
+    const workspaceId = get().currentWorkspaceId;
+    const existing = 'id' in data
+      ? get().budgetOverrides.find(override => override.id === data.id)
+      : get().budgetOverrides.find(override =>
+          override.categoryId === data.categoryId &&
+          override.month === data.month &&
+          override.year === data.year
+        );
+    const now = Date.now();
+    const override: BudgetOverride = existing
+      ? { ...existing, ...data, workspaceId, updatedAt: now }
+      : { ...data, id: generateId(), workspaceId, createdAt: now };
+    const budgetOverrides = existing
+      ? get().budgetOverrides.map(item => item.id === override.id ? override : item)
+      : [...get().budgetOverrides, override];
+    const { month, year } = getCurrentBudgetMonth();
+    set({ budgetOverrides, budgets: buildEffectiveBudgets(workspaceId, get().budgetRules, budgetOverrides, month, year) });
+    await Storage.saveBudgetOverridesFor(workspaceId, budgetOverrides);
+    return override;
+  },
+
+  deleteBudgetOverride: async (id) => {
+    const workspaceId = get().currentWorkspaceId;
+    const budgetOverrides = get().budgetOverrides.filter(override => override.id !== id);
+    const { month, year } = getCurrentBudgetMonth();
+    set({ budgetOverrides, budgets: buildEffectiveBudgets(workspaceId, get().budgetRules, budgetOverrides, month, year) });
+    await Storage.saveBudgetOverridesFor(workspaceId, budgetOverrides);
+  },
+
+  getEffectiveBudgets: (month, year) => {
+    const state = get();
+    return buildEffectiveBudgets(state.currentWorkspaceId, state.budgetRules, state.budgetOverrides, month, year);
+  },
+
+  getEffectiveBudget: (categoryId, month, year) => {
+    return get().getEffectiveBudgets(month, year).find(budget => budget.categoryId === categoryId) ?? null;
   },
 
   // ── Categories ────────────────────────────────────────────────────────────
@@ -198,7 +422,7 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
 
   resetData: async () => {
     await Storage.clearAll();
-    set({ transactions: [], budgets: [] });
+    set({ transactions: [], budgets: [], budgetRules: [], budgetOverrides: [] });
   },
 
   resetAll: async () => {
@@ -209,6 +433,8 @@ export const useLumaStore = create<LumaStore>((set, get) => ({
       currentWorkspaceId: 'personal',
       transactions: [],
       budgets: [],
+      budgetRules: [],
+      budgetOverrides: [],
       categories: [],
       settings: {},
     });

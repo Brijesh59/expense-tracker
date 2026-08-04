@@ -29,7 +29,8 @@ export default function OverviewScreen() {
   const { budgetsWithSpend, totalBudget, totalSpent } = useBudgets({ month, year });
   const categories = useCategories();
   const { sections } = useTransactions({ month, year });
-  const allBudgets = useLumaStore(s => s.budgets);
+  const budgetRules = useLumaStore(s => s.budgetRules);
+  const budgetOverrides = useLumaStore(s => s.budgetOverrides);
   const workspaces = useLumaStore(s => s.workspaces);
   const currentWorkspaceId = useLumaStore(s => s.currentWorkspaceId);
   const { open: openAddExpense } = useAddExpense();
@@ -46,7 +47,7 @@ export default function OverviewScreen() {
   );
 
   // True if user has set up any budgets at all (any month)
-  const hasAnyBudgets = allBudgets.length > 0;
+  const hasAnyBudgets = budgetRules.length > 0 || budgetOverrides.length > 0 || budgetsWithSpend.length > 0;
   // True if this specific month has spending against budgets (for bar chart)
   const hasSpendThisMonth = budgetsWithSpend.some(b => b.spent > 0);
   const remaining = totalBudget - totalSpent;

@@ -1,2 +1,5 @@
-// Route handled by app/(tabs)/budgets.tsx
-export {};
+import { Redirect } from 'expo-router';
+
+export default function BudgetsRedirect() {
+  return <Redirect href="/(tabs)/budgets" />;
+}

@@ -17,6 +17,7 @@ import { DailyBarChart } from '@/components/charts/DailyBarChart';
 import { AddExpenseSheet, AddExpenseSheetRef } from '@/components/sheets/AddExpenseSheet';
 import { BudgetFormSheet, BudgetFormSheetRef } from '@/components/sheets/BudgetFormSheet';
 import { useLumaStore } from '@/db/store';
+import { useMonthStore } from '@/store/monthStore';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { getLast7DaysSpend } from '@/utils/analytics';
@@ -28,18 +29,20 @@ import type { Transaction } from '@/db/types';
 export default function BudgetDetailScreen() {
   const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const budgets = useLumaStore(s => s.budgets);
+  const { month, year } = useMonthStore();
+  const getEffectiveBudgets = useLumaStore(s => s.getEffectiveBudgets);
   const { format, formatFull } = useCurrency();
   const categories = useCategories();
   const editSheetRef = useRef<AddExpenseSheetRef>(null);
   const budgetSheetRef = useRef<BudgetFormSheetRef>(null);
 
-  const budget = budgets.find(b => b.id === id);
+  const budgets = getEffectiveBudgets(month, year);
+  const budget = budgets.find(b => b.id === id || b.ruleId === id || b.overrideId === id);
   const category = categories.find(c => c.id === budget?.categoryId);
 
   const { transactions, sections, total } = useTransactions({
-    month: budget?.month ?? new Date().getMonth() + 1,
-    year: budget?.year ?? new Date().getFullYear(),
+    month: budget?.month ?? month,
+    year: budget?.year ?? year,
     categoryId: budget?.categoryId,
   });
 

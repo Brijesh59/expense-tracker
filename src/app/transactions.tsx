@@ -1,2 +1,5 @@
-// Route handled by app/(tabs)/transactions.tsx
-export {};
+import { Redirect } from 'expo-router';
+
+export default function TransactionsRedirect() {
+  return <Redirect href="/(tabs)/transactions" />;
+}

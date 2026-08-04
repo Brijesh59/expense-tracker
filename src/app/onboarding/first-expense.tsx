@@ -21,7 +21,7 @@ export default function FirstExpenseScreen() {
   const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
   const categories = useCategories();
   const addTransaction = useLumaStore(s => s.addTransaction);
-  const budgets = useLumaStore(s => s.budgets);
+  const getEffectiveBudget = useLumaStore(s => s.getEffectiveBudget);
   const transactions = useLumaStore(s => s.transactions);
 
   const [amount, setAmount] = useState('');
@@ -56,9 +56,7 @@ export default function FirstExpenseScreen() {
         notes: '',
       });
 
-      const categoryBudget = budgets.find(
-        b => b.categoryId === catId && b.month === month && b.year === year
-      )?.amount ?? null;
+      const categoryBudget = getEffectiveBudget(catId, month, year)?.amount ?? null;
 
       const categorySpent = transactions
         .filter(t => t.categoryId === catId)
@@ -81,7 +79,7 @@ export default function FirstExpenseScreen() {
     } finally {
       setSaving(false);
     }
-  }, [amount, merchant, paymentMethod, saving, categoryId, selectedCategory, budgets, transactions]);
+  }, [amount, merchant, paymentMethod, saving, categoryId, selectedCategory, getEffectiveBudget, transactions]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>

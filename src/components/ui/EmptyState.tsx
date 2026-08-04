@@ -4,16 +4,16 @@ import { H3, Body } from './Typography';
 import { Button } from './Button';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { LunaMascot } from '@/components/mascot/LunaMascot';
 
 interface EmptyStateProps {
   headline: string;
   subtext: string;
   ctaLabel?: string;
   onCTA?: () => void;
-  icon?: string;
 }
 
-export function EmptyState({ headline, subtext, ctaLabel, onCTA, icon = '🐱' }: EmptyStateProps) {
+export function EmptyState({ headline, subtext, ctaLabel, onCTA }: EmptyStateProps) {
   const { colors } = useTheme();
   return (
     <View
@@ -26,18 +26,8 @@ export function EmptyState({ headline, subtext, ctaLabel, onCTA, icon = '🐱' }
         gap: Spacing.sm,
       }}
     >
-      <View
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 40,
-          backgroundColor: colors.surface2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: Spacing.sm,
-        }}
-      >
-        <Body style={{ fontSize: 36 }}>{icon}</Body>
+      <View style={{ marginBottom: Spacing.md }}>
+        <LunaMascot size={116} />
       </View>
       <H3 style={{ textAlign: 'center' }}>{headline}</H3>
       <Body color={colors.textSecondary} style={{ textAlign: 'center' }}>
